@@ -3,16 +3,16 @@
 #include <stdio.h>
 
 typedef enum {
-	keyword, symbol, integer, string, identifier
+	keyword, identifier, symbol, integer, string
 } TOKENTYPE;
 
-typedef struct tklist {
+typedef struct token {
 	char* token;
 	TOKENTYPE type;
 	int truen;
-	struct tklist* next;
-} TOKENLIST;
+	struct token* next;
+} TOKEN;
 
-TOKENLIST* tokenize(FILE* input);
-void freetokenlist(TOKENLIST l);
+TOKEN* tokenize(FILE* input);
+void freetokenlist(TOKEN l);
 #endif

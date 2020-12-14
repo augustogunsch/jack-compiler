@@ -3,19 +3,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include "tokenizer.h"
-
-const char* types[] = {
-	"keyword", "symbol", "integerConstant", "stringConstant", "identifier"
-};
-
-void printtks(TOKENLIST* tks, FILE* output) {
-	fprintf(output, "<%s> %s </%s>\r\n", types[tks->type], tks->token, types[tks->type]);
-	TOKENLIST* next = tks->next;
-	free(tks->token);
-	free(tks);
-	if(next != NULL)
-		printtks(next, output);
-}
+#include "printer.h"
+#include "parser.h"
 
 int main(int argc, char* argv[]) {
 	if(argc < 2) {
@@ -30,11 +19,10 @@ int main(int argc, char* argv[]) {
 		return errno;
 	}
 
-	FILE* output = fopen("out.xml", "w");
-	fprintf(output, "<tokens>\r\n");
-	printtks(tokenize(input), output);
-	fprintf(output, "</tokens>\r\n");
-	fclose(output);
+	PARSER* p = mkparser(tokenize(input), argv[1]);
+	parse(p);
+
+	printparser(stdout, p);
 	
 	return 0;
 }

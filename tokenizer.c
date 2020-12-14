@@ -15,8 +15,8 @@ typedef struct {
 	int count;
 } STRING;
 
-TOKENLIST* mktokenlist() {
-	return (TOKENLIST*)malloc(sizeof(TOKENLIST));
+TOKEN* mktokenlist() {
+	return (TOKEN*)malloc(sizeof(TOKEN));
 }
 
 CHARTYPE getchartype(unsigned char c) {
@@ -97,18 +97,18 @@ TOKENTYPE gettokentype(STRING* tk, int truen) {
 	exit(1);
 }
 
-TOKENLIST* appendtokenraw(TOKENLIST* curitem, STRING* token, int truen, TOKENTYPE type) {
+TOKEN* appendtokenraw(TOKEN* curitem, STRING* token, int truen, TOKENTYPE type) {
 	curitem->token = (char*)malloc(sizeof(char)*token->count);
 	strcpy(curitem->token, token->str);
 	curitem->truen = truen;
 	curitem->type = type;
-	TOKENLIST* nextitem = mktokenlist();
+	TOKEN* nextitem = mktokenlist();
 	curitem->next = nextitem;
 	token->count = 0;
 	return nextitem;
 }
 
-TOKENLIST* appendtoken(TOKENLIST* curitem, STRING* token, int truen) {
+TOKEN* appendtoken(TOKEN* curitem, STRING* token, int truen) {
 	append(token, '\0');
 	return appendtokenraw(curitem, token, truen, gettokentype(token, truen));
 }
@@ -168,10 +168,10 @@ void freestr(STRING* str) {
 	free(str);
 }
 
-TOKENLIST* tokenize(FILE* input) {
-	TOKENLIST* head = mktokenlist();
-	TOKENLIST* lastitem = head;
-	TOKENLIST* curitem = head;
+TOKEN* tokenize(FILE* input) {
+	TOKEN* head = mktokenlist();
+	TOKEN* lastitem = head;
+	TOKEN* curitem = head;
 
 	STRING* tmptoken = mkstring(200);
 	CHARTYPE lasttype = space;
