@@ -184,7 +184,7 @@ void printterm(TERM* e, FILE* output, int depth) {
 		fprintf(output, "<symbol> ) </symbol>\r\n");
 	} else {
 		printident(output, depth+1);
-		fprintf(output, "<symbol> %c </symbol>\r\n", e->unaryop);
+		fprintf(output, "<symbol> ~ </symbol>\r\n");
 
 		printterm(e->expression, output, depth+1);
 	}

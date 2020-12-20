@@ -1,5 +1,6 @@
 #ifndef PARSER_H
 #define PARSER_H
+#include <stdbool.h>
 #include "tokenizer.h"
 
 struct statement;
@@ -16,6 +17,8 @@ typedef enum {
 typedef struct {
 	char* parentname;
 	char* name;
+	char* file;
+	int definedat;
 	struct explist* parameters;
 } SUBROUTCALL;
 
@@ -27,7 +30,6 @@ typedef struct term {
 		SUBROUTCALL* call;
 		struct term* expression;
 	};
-	char unaryop;
 	struct term* arrayexp;
 	char op;
 	struct term* next;
@@ -76,7 +78,10 @@ typedef struct stringlist {
 } STRINGLIST;
 
 typedef struct vardec {
+	char* file;
+	int definedat;
 	char* type;
+	bool primitive;
 	TOKENTYPE typeclass;
 	STRINGLIST* names;
 	struct vardec* next;
@@ -104,6 +109,8 @@ typedef struct SUBROUTBODY {
 } SUBROUTBODY;
 
 typedef struct subdec {
+	char* file;
+	int definedat;
 	SUBROUTCLASS subroutclass;
 	char* type;
 	TOKENTYPE typeclass;
@@ -113,10 +120,13 @@ typedef struct subdec {
 	struct subdec* next;
 } SUBDEC;
 
-typedef struct {
+typedef struct cl {
 	char* name;
 	CLASSVARDEC* vardecs;
 	SUBDEC* subdecs;
+	char* file;
+	int definedat;
+	struct cl* next;
 } CLASS;
 
 typedef struct {

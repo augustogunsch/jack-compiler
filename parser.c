@@ -97,7 +97,6 @@ TERM* parsetermnullified(PARSER* p) {
 		next(p);
 	} else if(!strcmp(p->current->token, "-") || !strcmp(p->current->token, "~")) {
 		t->type = unaryopterm;
-		t->unaryop = p->current->token[0];
 		next(p);
 		t->expression = parseterm(p);
 	} else if(!strcmp(p->current->token, "(")) {
@@ -204,6 +203,10 @@ SUBROUTCALL* parsesubroutcall(PARSER* p) {
 		restorecp(p);
 		return NULL;
 	}
+	
+	call->definedat = p->current->truen;
+	call->file = p->file;
+
 	call->name = p->current->token;
 	next(p);
 
@@ -326,17 +329,19 @@ STATEMENT* parsestatements(PARSER* p) {
 	return head;
 }
 
-char* parsetype(PARSER* p) {
+char* parsetype(PARSER* p, bool* primitive) {
 	char* result = p->current->token;
 	if(p->current->type == keyword)
 		for(int i = 0; i < vardectypessize; i++) {
 			if(!strcmp(p->current->token, vardectypes[i])) {
 				next(p);
+				*primitive = true;
 				return result;
 			}
 		}
 	else if (p->current->type == identifier) {
 		next(p);
+		*primitive = false;
 		return result;
 	}
 	else
@@ -367,11 +372,13 @@ char* parseidentifier(PARSER* p) {
 
 void parsevardeccommon(PARSER* p, VARDEC* v) {
 	v->typeclass = p->current->type;
-	v->type = parsetype(p);
+	v->type = parsetype(p, &(v->primitive));
 
 	STRINGLIST* currstr = (STRINGLIST*)malloc(sizeof(STRINGLIST));
 	v->names = currstr;
 
+	v->file = p->file;
+	v->definedat = p->current->truen;
 	v->names->content = parseidentifier(p);
 
 	while(!strcmp(p->current->token, ",")) {
@@ -444,7 +451,8 @@ PARAMETER* parseparameter(PARSER* p) {
 	PARAMETER* param = (PARAMETER*)malloc(sizeof(PARAMETER));
 	if(!strcmp(p->current->token, ")"))
 		return NULL;
-	param->type = parsetype(p);
+	bool dummy;
+	param->type = parsetype(p, &dummy);
 	param->name = parseidentifier(p);
 	return param;
 }
@@ -483,8 +491,13 @@ SUBDEC* parsesubroutdec(PARSER* p) {
 		subdec->type = p->current->token;
 		next(p);
 	}
-	else
-		subdec->type = parsetype(p);
+	else {
+		bool dummy;
+		subdec->type = parsetype(p, &dummy);
+	}
+
+	subdec->file = p->file;
+	subdec->definedat = p->current->truen;
 
 	subdec->name = parseidentifier(p);
 
@@ -517,6 +530,9 @@ CLASS* parseclass(PARSER* p) {
 
 	CLASS* class = (CLASS*)malloc(sizeof(CLASS));
 
+	class->definedat = p->current->truen;
+	class->file = p->file;
+
 	class->name = parseidentifier(p);
 
 	checkcontent(p, "{");
@@ -526,6 +542,8 @@ CLASS* parseclass(PARSER* p) {
 	class->subdecs = parsesubroutdecs(p);
 
 	checkcontent(p, "}");
+
+	class->next = NULL;
 	return class;
 }
 
