@@ -42,6 +42,7 @@ LINE* mksimpleln(char** tokens, int count) {
 	LINE* ln = mkline(count);
 	for(int i = 0; i < count; i++)
 		addtoken(ln, ezheapstr(tokens[i]));
+	ln->next = NULL;
 	return ln;
 }
 
@@ -75,12 +76,8 @@ LINEBLOCK* compileexpression(SCOPE* s, TERM* e) {
 	LINEBLOCK* next = NULL;
 
 	if(e->type == intconstant) {
-		LINE* ln = mkline(3);
-		addtoken(ln, ezheapstr("push"));
-		addtoken(ln, ezheapstr("constant"));
-		addtoken(ln, itoa(e->integer));
-		ln->next = NULL;
-		myblk = mklnblk(ln);
+		char* tokens[] = { "push", "constant", itoa(e->integer) };
+		myblk = mklnblk(mksimpleln(tokens, sizeof(tokens) / sizeof(char*)));
 	}
 	else if(e->type == unaryopterm) {
 		myblk = compileexpression(s, e->expression);
@@ -97,9 +94,7 @@ LINEBLOCK* compileexpression(SCOPE* s, TERM* e) {
 
 	if(e->next != NULL) {
 		next = compileexpression(s, e->next);
-		LINE* op = mathopln(e->op);
-		appendln(next, op);
-		op->next = NULL;
+		appendln(next, mathopln(e->op));
 		myblk = mergelnblks(myblk, next);
 	}
 
