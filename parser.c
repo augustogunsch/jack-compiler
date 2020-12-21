@@ -39,6 +39,13 @@ const char* tokentypes[] = {
 	"keyword", "identifier", "symbol", "integerConstant", "stringConstant"
 };
 
+DEBUGINFO* getdebug(PARSER* p) {
+	DEBUGINFO* d = (DEBUGINFO*)malloc(sizeof(DEBUGINFO));
+	d->file = p->file;
+	d->definedat = p->current->truen;
+	return d;
+}
+
 void next(PARSER* p) {
 	p->current = p->current->next;
 }
@@ -203,9 +210,7 @@ SUBROUTCALL* parsesubroutcall(PARSER* p) {
 		restorecp(p);
 		return NULL;
 	}
-	
-	call->definedat = p->current->truen;
-	call->file = p->file;
+	call->debug = getdebug(p);
 
 	call->name = p->current->token;
 	next(p);
@@ -377,8 +382,8 @@ void parsevardeccommon(PARSER* p, VARDEC* v) {
 	STRINGLIST* currstr = (STRINGLIST*)malloc(sizeof(STRINGLIST));
 	v->names = currstr;
 
-	v->file = p->file;
-	v->definedat = p->current->truen;
+	v->debug = getdebug(p);
+
 	v->names->content = parseidentifier(p);
 
 	while(!strcmp(p->current->token, ",")) {
@@ -496,8 +501,7 @@ SUBDEC* parsesubroutdec(PARSER* p) {
 		subdec->type = parsetype(p, &dummy);
 	}
 
-	subdec->file = p->file;
-	subdec->definedat = p->current->truen;
+	subdec->debug = getdebug(p);
 
 	subdec->name = parseidentifier(p);
 
@@ -530,8 +534,7 @@ CLASS* parseclass(PARSER* p) {
 
 	CLASS* class = (CLASS*)malloc(sizeof(CLASS));
 
-	class->definedat = p->current->truen;
-	class->file = p->file;
+	class->debug = getdebug(p);
 
 	class->name = parseidentifier(p);
 

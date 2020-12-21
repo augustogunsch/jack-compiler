@@ -34,24 +34,16 @@ char* itoa(int i) {
 	return a;
 }
 
-void printlns(LINELIST* lns, FILE* stream) {
-	LINELIST* curln = lns;
-	while(curln != NULL) {
-		fprintf(stream, "%s\n", curln->content);
-		curln = curln->next;
+void printstrlist(STRINGLIST* strlist, FILE* stream) {
+	while(strlist != NULL) {
+		fprintf(stream, "%s\n", strlist->content);
+		strlist = strlist->next;
 	}
 }
 
-void freelns(LINELIST* lns) {
-	LINELIST* next = lns->next;
-	free(lns);
+void freestrlist(STRINGLIST* strlist) {
+	STRINGLIST* next = strlist->next;
+	free(strlist);
 	if(next != NULL)
-		freelns(next);
-}
-
-LINE* mkline(int count) {
-	LINE* l = (LINE*)malloc(sizeof(LINE));
-	l->tokenscount = 0;
-	l->tokens = (char**)malloc(sizeof(char*)*count);
-	return l;
+		freestrlist(next);
 }

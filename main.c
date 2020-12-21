@@ -2,26 +2,10 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include "tokenizer.h"
-#include "printer.h"
-#include "parser.h"
 #include "compiler.h"
 
-void println(LINE* ln) {
-	for(int i = 0; i < ln->tokenscount; i++) {
-		printf("%s", ln->tokens[i]);
-		if(i != ln->tokenscount-1)
-			printf(" ");
-	}
-	printf("\n");
-}
-
 void printcompiler(COMPILER* c) {
-	LINE* current = c->output;
-	while(current != NULL) {
-		println(current);
-		current = current->next;
-	}
+	printlns(c->output->head, stdout);
 }
 
 int main(int argc, char* argv[]) {

@@ -2,19 +2,12 @@
 #define COMPILER_H
 #include "util.h"
 #include "parser.h"
-
-typedef struct scope {
-	SUBDEC* subroutines;
-	CLASSVARDEC* classvardecs;
-	VARDEC* vardecs;
-	CLASS* classes;
-	struct scope* previous;
-} SCOPE;
+#include "vm-lines.h"
+#include "compiler-scopes.h"
 
 typedef struct {
 	SCOPE* globalscope;
-	LINE* output;
-	LINE* lastln;
+	LINEBLOCK* output;
 } COMPILER;
 
 COMPILER* mkcompiler(CLASS* classes);

@@ -1,4 +1,4 @@
-FILES = tokenizer.c main.c parser.c printer.c compiler.c util.c
+FILES = *.c
 INCLUDES = -I.
 CFLAGS = -std=c99 -g
 OUTFILE = compiler
