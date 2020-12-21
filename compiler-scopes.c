@@ -26,7 +26,7 @@ OBJ* getbynamelist(SCOPE* s, STRINGLIST* names, char** retname);
 // Scope adding
 void addclassvardec(SCOPE* s, CLASSVARDEC* v);
 void addvardec(SCOPE* s, VARDEC* v);
-void addsubdec(SCOPE* s, SUBDEC* sd);
+void addsubroutdec(SCOPE* s, SUBROUTDEC* sd);
 void addclass(SCOPE* s, CLASS* c);
 
 // DEFINITIONS
@@ -59,8 +59,8 @@ DEBUGINFO* getdebugvardec(OBJ* obj) {
 	return obj->vardec->debug;
 }
 
-DEBUGINFO* getdebugsubdec(OBJ* obj) {
-	return obj->subdec->debug;
+DEBUGINFO* getdebugsubroutdec(OBJ* obj) {
+	return obj->subroutdec->debug;
 }
 
 DEBUGINFO* getdebugclass(OBJ* obj) {
@@ -150,15 +150,15 @@ CLASSVARDEC* getclassvardec(SCOPE* s, char* name) {
 	return NULL;
 }
 
-SUBDEC* getsubdec(SCOPE* s, char* name) {
-	SUBDEC* curr = s->subroutines;
+SUBROUTDEC* getsubroutdec(SCOPE* s, char* name) {
+	SUBROUTDEC* curr = s->subroutines;
 	while(curr != NULL) {
 		if(!strcmp(curr->name, name))
 			return curr;
 		curr = curr->next;
 	}
 	if(s->previous != NULL)
-		return getsubdec(s->previous, name);
+		return getsubroutdec(s->previous, name);
 	return NULL;
 }
 
@@ -174,8 +174,8 @@ CLASS* getclass(SCOPE* s, char* name) {
 	return NULL;
 }
 
-SUBDEC* getsubdecfromclass(CLASS* c, char* name) {
-	SUBDEC* curr = c->subdecs;
+SUBROUTDEC* getsubroutdecfromclass(CLASS* c, char* name) {
+	SUBROUTDEC* curr = c->subroutdecs;
 	while(curr != NULL) {
 		if(!strcmp(curr->name, name))
 			return curr;
@@ -184,34 +184,34 @@ SUBDEC* getsubdecfromclass(CLASS* c, char* name) {
 	return NULL;
 }
 
-SUBDEC* getsubdecfromvar(SCOPE* s, OBJ* var, SUBROUTCALL* call) {
+SUBROUTDEC* getsubroutdecfromvar(SCOPE* s, OBJ* var, SUBROUTCALL* call) {
 	VARDEC* vd = tovardec(var);
 	if(vd == NULL || vd->primitive)
 		invalidparent(call);
 	CLASS* c = getclass(s, vd->type);
-	return getsubdecfromclass(c, call->name);
+	return getsubroutdecfromclass(c, call->name);
 }
 
-SUBDEC* getsubdecfromparent(SCOPE* s, SUBROUTCALL* call) {
-	SUBDEC* sd;
+SUBROUTDEC* getsubroutdecfromparent(SCOPE* s, SUBROUTCALL* call) {
+	SUBROUTDEC* sd;
 
 	OBJ* parent = getbyname(s, call->parentname);
 	if(parent == NULL)
 		notdeclared(call->parentname, call->debug);
 
 	if(parent->type == class)
-		sd = getsubdecfromclass(parent->class, call->name);
+		sd = getsubroutdecfromclass(parent->class, call->name);
 	else
-		sd = getsubdecfromvar(s, parent, call);
+		sd = getsubroutdecfromvar(s, parent, call);
 	return sd;
 }
 
-SUBDEC* getsubdecfromcall(SCOPE* s, SUBROUTCALL* call) {
-	SUBDEC* sd;
+SUBROUTDEC* getsubroutdecfromcall(SCOPE* s, SUBROUTCALL* call) {
+	SUBROUTDEC* sd;
 	if(call->parentname != NULL)
-		sd = getsubdecfromparent(s, call);
+		sd = getsubroutdecfromparent(s, call);
 	else
-		sd = getsubdec(s, call->name);
+		sd = getsubroutdec(s, call->name);
 	if(sd == NULL)
 		notdeclared(call->name, call->debug);
 	return sd;
@@ -233,14 +233,14 @@ OBJ* getbyname(SCOPE* s, char* name) {
 	if(vd != NULL) {
 		o->vardec = vd;
 		o->type = vardec;
-		o->getdebug = getdebugsubdec;
+		o->getdebug = getdebugsubroutdec;
 		return o;
 	}
 
-	SUBDEC* sd = getsubdec(s, name);
+	SUBROUTDEC* sd = getsubroutdec(s, name);
 	if(sd != NULL) {
-		o->subdec = sd;
-		o->type = subdec;
+		o->subroutdec = sd;
+		o->type = subroutdec;
 		o->getdebug = getdebugclassvardec;
 		return o;
 	}
@@ -286,9 +286,9 @@ void addvardec(SCOPE* s, VARDEC* v) {
 	s->vardecs = new;
 }
 
-void addsubdec(SCOPE* s, SUBDEC* sd) {
+void addsubroutdec(SCOPE* s, SUBROUTDEC* sd) {
 	ensurenoduplicate(s, sd->name, sd->debug);
-	SUBDEC* new = copy(sd, sizeof(SUBDEC));
+	SUBROUTDEC* new = copy(sd, sizeof(SUBROUTDEC));
 	new->next = s->subroutines;
 	s->subroutines = new;
 }
@@ -319,11 +319,11 @@ void addvardecs(SCOPE* s, VARDEC* vs) {
 	}
 }
 
-void addsubdecs(SCOPE* s, SUBDEC* ss) {
-	SUBDEC* next;
+void addsubroutdecs(SCOPE* s, SUBROUTDEC* ss) {
+	SUBROUTDEC* next;
 	while(ss != NULL) {
 		next = ss->next;
-		addsubdec(s, ss);
+		addsubroutdec(s, ss);
 		ss = next;
 	}
 }

@@ -27,7 +27,7 @@ char* dotlabel(char* n1, char* n2) {
 	return result;
 }
 
-char* subdecname(CLASS* c, SUBDEC* sd) {
+char* subroutdecname(CLASS* c, SUBROUTDEC* sd) {
 	return dotlabel(c->name, sd->name);
 }
 
@@ -126,10 +126,10 @@ LINEBLOCK* compilecallln(CLASS* c, SUBROUTCALL* call) {
 }
 
 // temporary ignore list for OS functions
-char* ignoresubdecs[] = {
+char* ignoresubroutdecs[] = {
 	"printInt", "void", "peek", "int"
 };
-int ignorecount = sizeof(ignoresubdecs) / sizeof(char*);
+int ignorecount = sizeof(ignoresubroutdecs) / sizeof(char*);
 
 LINEBLOCK* compilesubroutcall(SCOPE* s, CLASS* c, SUBROUTCALL* call) {
 	LINEBLOCK* block = compilecallln(c, call);
@@ -143,13 +143,13 @@ LINEBLOCK* compilesubroutcall(SCOPE* s, CLASS* c, SUBROUTCALL* call) {
 	// gambiarra
 	char* type = NULL;
 	for(int i = 0; i < ignorecount; i += 2) {
-		if(!strcmp(call->name, ignoresubdecs[i])) {
-			type = ignoresubdecs[i+1];
+		if(!strcmp(call->name, ignoresubroutdecs[i])) {
+			type = ignoresubroutdecs[i+1];
 			break;
 		}
 	}
 	if(type == NULL)
-		type = getsubdecfromcall(s, call)->type;
+		type = getsubroutdecfromcall(s, call)->type;
 	if(!strcmp(type, "void")) {
 		char* tokens[] = { "pop", "temp", "0" };
 		appendln(block, mksimpleln(tokens, sizeof(tokens) / sizeof(char*)));
@@ -162,7 +162,7 @@ LINEBLOCK* compileret(SCOPE* s, TERM* e) {
 	LINE* ret = onetoken("return");
 	LINEBLOCK* block = mklnblk(ret);
 
-	// void subdecs return 0
+	// void subroutdecs return 0
 	if(e == NULL) {
 		char* tokens[] = { "push", "constant", "0" };
 		appendlnbefore(block, mksimpleln(tokens, sizeof(tokens) / sizeof(char*)));
@@ -174,9 +174,9 @@ LINEBLOCK* compileret(SCOPE* s, TERM* e) {
 
 LINEBLOCK* compilestatement(SCOPE* s, CLASS* c, STATEMENT* st) {
 	if(st->type == dostatement)
-		return compilesubroutcall(s, c, st->dost);
+		return compilesubroutcall(s, c, st->dostatement);
 	else if(st->type == returnstatement)
-		return compileret(s, st->retst);
+		return compileret(s, st->retstatement);
 	else {
 		eprintf("UNSUPPORTED\n");
 		exit(1);
@@ -198,10 +198,10 @@ LINEBLOCK* compilefunbody(SCOPE* s, CLASS* c, SUBROUTBODY* b) {
 	return head;
 }
 
-LINEBLOCK* compilefundec(SCOPE* s, CLASS* c, SUBDEC* f) {
+LINEBLOCK* compilefundec(SCOPE* s, CLASS* c, SUBROUTDEC* f) {
 	LINE* label = mkline(3);
 	addtoken(label, ezheapstr("function"));
-	addtoken(label, subdecname(c, f));
+	addtoken(label, subroutdecname(c, f));
 	addtoken(label, itoa(countlocalvars(f->body->vardecs)));
 	label->next = NULL;
 
@@ -214,7 +214,7 @@ LINEBLOCK* compilefundec(SCOPE* s, CLASS* c, SUBDEC* f) {
 		return mklnblk(label);
 }
 
-LINEBLOCK* compilesubdec(SCOPE* s, CLASS* c, SUBDEC* sd) {
+LINEBLOCK* compilesubroutdec(SCOPE* s, CLASS* c, SUBROUTDEC* sd) {
 	// 'this' and arguments are pushed by caller
 	// Must have a 'return' at the end
 	// Label names must have class name too (see mapping)
@@ -228,12 +228,12 @@ LINEBLOCK* compilesubdec(SCOPE* s, CLASS* c, SUBDEC* sd) {
 LINEBLOCK* compileclass(COMPILER* c, CLASS* class) {
 	SCOPE* topscope = mkscope(c->globalscope);
 	addclassvardecs(topscope, class->vardecs);
-	addsubdecs(topscope, class->subdecs);
+	addsubroutdecs(topscope, class->subroutdecs);
 
 	LINEBLOCK* output = NULL;
-	SUBDEC* curr = class->subdecs;
+	SUBROUTDEC* curr = class->subroutdecs;
 	while(curr != NULL) {
-		output = mergelnblks(output, compilesubdec(topscope, class, curr));
+		output = mergelnblks(output, compilesubroutdec(topscope, class, curr));
 		curr = curr->next;
 	}
 	return output;

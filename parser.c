@@ -20,10 +20,10 @@ const char* ops[] = {
 };
 const int opssize = sizeof(ops) / sizeof(char*);
 
-const char* varclasses[] = {
+const char* classvartypes[] = {
 	"static", "field"
 };
-const int varclassessize = sizeof(varclasses) / sizeof(char*);
+const int classvartypessize = sizeof(classvartypes) / sizeof(char*);
 
 const char* vardectypes[] = {
 	"int", "char", "boolean"
@@ -290,29 +290,29 @@ STATEMENT* parsestatement(PARSER* p) {
 	if(!strcmp(p->current->token, "let")) {
 		next(p);
 		st->type = letstatement;
-		st->letst = parselet(p);
+		st->letstatement = parselet(p);
 	} else if(!strcmp(p->current->token, "if")) {
 		next(p);
 		st->type = ifstatement;
-		st->ifst = parseif(p);
+		st->ifstatement = parseif(p);
 	} else if(!strcmp(p->current->token, "while")) {
 		next(p);
 		st->type = whilestatement;
-		st->whilest = parsecond(p);
+		st->whilestatement = parsecond(p);
 	} else if(!strcmp(p->current->token, "do")) {
 		next(p);
 		st->type = dostatement;
-		st->dost = parsesubroutcall(p);
+		st->dostatement = parsesubroutcall(p);
 		checkcontent(p, ";");
 	} else if(!strcmp(p->current->token, "return")) {
 		next(p);
 		st->type = returnstatement;
 		if(strcmp(p->current->token, ";")) {
-			st->retst = parseexpressionnullified(p);
+			st->retstatement = parseexpressionnullified(p);
 			checkcontent(p, ";");
 		}
 		else {
-			st->retst = NULL;
+			st->retstatement = NULL;
 			next(p);
 		}
 	} else {
@@ -361,8 +361,8 @@ int parsepossibilities(PARSER* p, const char** strings, int sz) {
 	return -1;
 }
 
-VARCLASS parsevarclass(PARSER* p) {
-	return parsepossibilities(p, varclasses, varclassessize);
+CLASSVARTYPE parseclassvartype(PARSER* p) {
+	return parsepossibilities(p, classvartypes, classvartypessize);
 }
 
 SUBROUTCLASS parsesubroutclass(PARSER* p) {
@@ -400,13 +400,13 @@ void parsevardeccommon(PARSER* p, VARDEC* v) {
 }
 
 CLASSVARDEC* parseclassvardec(PARSER* p) {
-	VARCLASS varclass = parsevarclass(p);
-	if(varclass == -1)
+	CLASSVARTYPE classvartype = parseclassvartype(p);
+	if(classvartype == -1)
 		return NULL;
 	next(p);
 
 	CLASSVARDEC* classvardec = (CLASSVARDEC*)malloc(sizeof(CLASSVARDEC));
-	classvardec->varclass = varclass;
+	classvardec->type = classvartype;
 
 	classvardec->base = (VARDEC*)malloc(sizeof(VARDEC));
 
@@ -484,44 +484,44 @@ SUBROUTBODY* parsesubroutbody(PARSER* p) {
 	return subroutbody;
 }
 
-SUBDEC* parsesubroutdec(PARSER* p) {
+SUBROUTDEC* parsesubroutdec(PARSER* p) {
 	SUBROUTCLASS subroutclass = parsesubroutclass(p);
 	if(subroutclass == -1)
 		return NULL;
 
 	next(p);
-	SUBDEC* subdec = (SUBDEC*)malloc(sizeof(SUBDEC));
-	subdec->subroutclass = subroutclass;
+	SUBROUTDEC* subroutdec = (SUBROUTDEC*)malloc(sizeof(SUBROUTDEC));
+	subroutdec->subroutclass = subroutclass;
 
-	subdec->typeclass = p->current->type;
+	subroutdec->typeclass = p->current->type;
 	if(!strcmp(p->current->token, "void")) {
-		subdec->type = p->current->token;
+		subroutdec->type = p->current->token;
 		next(p);
 	}
 	else {
 		bool dummy;
-		subdec->type = parsetype(p, &dummy);
+		subroutdec->type = parsetype(p, &dummy);
 	}
 
-	subdec->debug = getdebug(p);
+	subroutdec->debug = getdebug(p);
 
-	subdec->name = parseidentifier(p);
+	subroutdec->name = parseidentifier(p);
 
 	checkcontent(p, "(");
-	subdec->parameters = parseparameters(p);
+	subroutdec->parameters = parseparameters(p);
 	checkcontent(p, ")");
 
 	checkcontent(p, "{");
-	subdec->body = parsesubroutbody(p);
+	subroutdec->body = parsesubroutbody(p);
 	checkcontent(p, "}");
 
-	return subdec;
+	return subroutdec;
 }
 
-SUBDEC* parsesubroutdecs(PARSER* p) {
-	SUBDEC* head = parsesubroutdec(p);
-	SUBDEC* current = head;
-	SUBDEC* next;
+SUBROUTDEC* parsesubroutdecs(PARSER* p) {
+	SUBROUTDEC* head = parsesubroutdec(p);
+	SUBROUTDEC* current = head;
+	SUBROUTDEC* next;
 	while(next = parsesubroutdec(p), next != NULL) {
 		current->next = next;
 		current = next;
@@ -544,7 +544,7 @@ CLASS* parseclass(PARSER* p) {
 
 	class->vardecs = parseclassvardecs(p);
 
-	class->subdecs = parsesubroutdecs(p);
+	class->subroutdecs = parsesubroutdecs(p);
 
 	checkcontent(p, "}");
 

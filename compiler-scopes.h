@@ -10,7 +10,7 @@
 
 // Data types
 typedef struct scope {
-	SUBDEC* subroutines;
+	SUBROUTDEC* subroutines;
 	CLASSVARDEC* classvardecs;
 	VARDEC* vardecs;
 	CLASS* classes;
@@ -18,13 +18,13 @@ typedef struct scope {
 } SCOPE;
 
 typedef enum {
-	subdec, classvardec, vardec, class
+	subroutdec, classvardec, vardec, class
 } OBJTYPE;
 
 typedef struct object {
 	OBJTYPE type;
 	union {
-		SUBDEC* subdec;
+		SUBROUTDEC* subroutdec;
 		CLASSVARDEC* classvardec;
 		VARDEC* vardec;
 		CLASS* class;
@@ -35,15 +35,15 @@ typedef struct object {
 // Group adding
 void addclassvardecs(SCOPE* s, CLASSVARDEC* vs);
 void addvardecs(SCOPE* s, VARDEC* vs);
-void addsubdecs(SCOPE* s, SUBDEC* ss);
+void addsubroutdecs(SCOPE* s, SUBROUTDEC* ss);
 void addclasses(SCOPE* s, CLASS* c);
 
 // Scope handling
 SCOPE* mkscope(SCOPE* prev);
 
 // Single type getters
-SUBDEC* getsubdec(SCOPE* s, char* name);
-SUBDEC* getsubdecfromcall(SCOPE* s, SUBROUTCALL* call);
+SUBROUTDEC* getsubroutdec(SCOPE* s, char* name);
+SUBROUTDEC* getsubroutdecfromcall(SCOPE* s, SUBROUTCALL* call);
 CLASS* getclass(SCOPE* s, char* name);
 
 // Generic getters
