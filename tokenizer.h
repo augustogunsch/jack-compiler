@@ -2,6 +2,9 @@
 #define TOKENIZER_H
 #include <stdio.h>
 
+/* tokenizer
+ * Simple tool that splits a stream into many tokens. */
+
 typedef enum {
 	keyword, identifier, symbol, integer, string
 } TOKENTYPE;
@@ -9,10 +12,10 @@ typedef enum {
 typedef struct token {
 	char* token;
 	TOKENTYPE type;
-	int truen;
+	int definedat;
 	struct token* next;
 } TOKEN;
 
 TOKEN* tokenize(FILE* input);
-void freetokenlist(TOKEN l);
+void freetokenlist(TOKEN* list);
 #endif

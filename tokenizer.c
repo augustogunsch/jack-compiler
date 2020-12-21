@@ -2,9 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include "tokens.h"
 #include "tokenizer.h"
+#include "tokenizer-tables.h"
 
+// Data types
 typedef enum {
 	common, charsymbol, space
 } CHARTYPE;
@@ -15,14 +16,38 @@ typedef struct {
 	int count;
 } STRING;
 
-TOKEN* mktokenlist() {
-	return (TOKEN*)malloc(sizeof(TOKEN));
-}
+// String manipulation
+STRING* mkstring(int size);
+void append(STRING* s, char c);
+void freestr(STRING* str);
 
-CHARTYPE getchartype(unsigned char c) {
-	if(isspace(c)) return space;
-	if(isalnum(c) || c == '_' || c == '"') return common;
-	return charsymbol;
+// Token manipulation;
+TOKEN* appendtokenraw(TOKEN* curitem, STRING* token, int definedat, TOKENTYPE type);
+TOKEN* appendtoken(TOKEN* curitem, STRING* token, int definedat);
+#define mktoken() (TOKEN*)malloc(sizeof(TOKEN))
+
+// Char types
+CHARTYPE getchartype(unsigned char c);
+bool iskeyword(STRING* tk);
+bool issymbol(STRING* tk);
+bool isint(char* str);
+bool isintcons(STRING* tk);
+bool isidentifier(STRING* tk);
+TOKENTYPE gettokentype(STRING* tk, int definedat);
+
+// Stream handling
+void skipln(FILE* input);
+void skipmultiln(FILE* input, int* lnscount);
+bool handlecomment(FILE* input, int* lnscount);
+void readstr(FILE* input, STRING* tmp, int definedat);
+
+// String manipulation
+STRING* mkstring(int size) {
+	STRING* str = (STRING*)malloc(sizeof(STRING));
+	str->size = sizeof(char) * size; // initial size
+	str->str = (char*)malloc(str->size);
+	str->count = 0;
+	return str;
 }
 
 void append(STRING* s, char c) {
@@ -36,12 +61,33 @@ void append(STRING* s, char c) {
 	s->count++;
 }
 
-STRING* mkstring(int size) {
-	STRING* str = (STRING*)malloc(sizeof(STRING));
-	str->size = sizeof(char) * size; // initial size
-	str->str = (char*)malloc(str->size);
-	str->count = 0;
-	return str;
+void freestr(STRING* str) {
+	free(str->str);
+	free(str);
+}
+
+// Token manipulation;
+TOKEN* appendtokenraw(TOKEN* curitem, STRING* token, int definedat, TOKENTYPE type) {
+	curitem->token = (char*)malloc(sizeof(char)*token->count);
+	strcpy(curitem->token, token->str);
+	curitem->definedat = definedat;
+	curitem->type = type;
+	TOKEN* nextitem = mktoken();
+	curitem->next = nextitem;
+	token->count = 0;
+	return nextitem;
+}
+
+TOKEN* appendtoken(TOKEN* curitem, STRING* token, int definedat) {
+	append(token, '\0');
+	return appendtokenraw(curitem, token, definedat, gettokentype(token, definedat));
+}
+
+// Char types
+CHARTYPE getchartype(unsigned char c) {
+	if(isspace(c)) return space;
+	if(isalnum(c) || c == '_' || c == '"') return common;
+	return charsymbol;
 }
 
 bool iskeyword(STRING* tk) {
@@ -88,31 +134,16 @@ bool isidentifier(STRING* tk) {
 	return true;
 }
 
-TOKENTYPE gettokentype(STRING* tk, int truen) {
+TOKENTYPE gettokentype(STRING* tk, int definedat) {
 	if(iskeyword(tk)) return keyword;
 	if(issymbol(tk)) return symbol;
 	if(isintcons(tk)) return integer;
 	if(isidentifier(tk)) return identifier;
-	fprintf(stderr, "Unexpected token '%s'; line %i\n", tk->str, truen);
+	eprintf("Unexpected token '%s'; line %i\n", tk->str, definedat);
 	exit(1);
 }
 
-TOKEN* appendtokenraw(TOKEN* curitem, STRING* token, int truen, TOKENTYPE type) {
-	curitem->token = (char*)malloc(sizeof(char)*token->count);
-	strcpy(curitem->token, token->str);
-	curitem->truen = truen;
-	curitem->type = type;
-	TOKEN* nextitem = mktokenlist();
-	curitem->next = nextitem;
-	token->count = 0;
-	return nextitem;
-}
-
-TOKEN* appendtoken(TOKEN* curitem, STRING* token, int truen) {
-	append(token, '\0');
-	return appendtokenraw(curitem, token, truen, gettokentype(token, truen));
-}
-
+// Stream handling
 void skipln(FILE* input) {
 	unsigned char c;
 	while(c = fgetc(input), c != '\0')
@@ -149,11 +180,11 @@ bool handlecomment(FILE* input, int* lnscount) {
 	return false;
 }
 
-void readstr(FILE* input, STRING* tmp, int truen) {
+void readstr(FILE* input, STRING* tmp, int definedat) {
 	unsigned char c;
 	while(c = fgetc(input), c != '\0') {
 		if(c == '\n') {
-			fprintf(stderr, "Unexpected end of line; line %i", truen);
+			eprintf("Unexpected end of line; line %i", definedat);
 			exit(1);
 		}
 		if(c == '"')
@@ -163,13 +194,8 @@ void readstr(FILE* input, STRING* tmp, int truen) {
 	append(tmp, '\0');
 }
 
-void freestr(STRING* str) {
-	free(str->str);
-	free(str);
-}
-
 TOKEN* tokenize(FILE* input) {
-	TOKEN* head = mktokenlist();
+	TOKEN* head = mktoken();
 	TOKEN* lastitem = head;
 	TOKEN* curitem = head;
 

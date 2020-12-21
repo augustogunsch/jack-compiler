@@ -63,11 +63,11 @@ LINE* mathopln(char op) {
 		return onetoken("and");
 	if(op == '/') {
 		char* tokens[] = { "call", "Math.divide", "2" };
-		return mksimpleln(tokens, sizeof(tokens) / sizeof(char*));
+		return mksimpleln(tokens, strcount(tokens));
 	}
 	if(op == '*') {
 		char* tokens[] = { "call", "Math.multiply", "2" };
-		return mksimpleln(tokens, sizeof(tokens) / sizeof(char*));
+		return mksimpleln(tokens, strcount(tokens));
 	}
 }
 
@@ -77,7 +77,7 @@ LINEBLOCK* compileexpression(SCOPE* s, TERM* e) {
 
 	if(e->type == intconstant) {
 		char* tokens[] = { "push", "constant", itoa(e->integer) };
-		myblk = mklnblk(mksimpleln(tokens, sizeof(tokens) / sizeof(char*)));
+		myblk = mklnblk(mksimpleln(tokens, strcount(tokens)));
 	}
 	else if(e->type == unaryopterm) {
 		myblk = compileexpression(s, e->expression);
@@ -88,7 +88,7 @@ LINEBLOCK* compileexpression(SCOPE* s, TERM* e) {
 		myblk = compileexpression(s, e->expression);
 	}
 	else {
-		fprintf(stderr, "Unsupported term yet %i\n", e->type);
+		eprintf("Unsupported term yet %i\n", e->type);
 		exit(1);
 	}
 
@@ -178,7 +178,7 @@ LINEBLOCK* compilestatement(SCOPE* s, CLASS* c, STATEMENT* st) {
 	else if(st->type == returnstatement)
 		return compileret(s, st->retst);
 	else {
-		fprintf(stderr, "UNSUPPORTED\n");
+		eprintf("UNSUPPORTED\n");
 		exit(1);
 	}
 }

@@ -5,6 +5,11 @@
 /* util
  * Random utilities. */
 
+// Macros
+#define eprintf(...) fprintf (stderr, __VA_ARGS__)
+#define count(array, type) ((sizeof(array)) / (sizeof(type)))
+#define strcount(array) count(array, char*)
+
 typedef struct stringlist {
 	char* content;
 	struct stringlist* next;

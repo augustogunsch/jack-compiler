@@ -79,18 +79,18 @@ VARDEC* tovardec(OBJ* obj) {
 
 void doubledeclaration(char* name, DEBUGINFO* debug, OBJ* other) {
 	DEBUGINFO* debugother = other->getdebug(other);
-	fprintf(stderr, "Double declaration of '%s' at '%s', line %i; previously defined at '%s', line %i\n",
+	eprintf("Double declaration of '%s' at '%s', line %i; previously defined at '%s', line %i\n",
 				name, debug->file, debug->definedat, debugother->file, debugother->definedat);
 	exit(1);
 }
 
 void notdeclared(char* name, DEBUGINFO* debug) {
-	fprintf(stderr, "'%s' not declared; file '%s', line %i\n", name, debug->file, debug->definedat);
+	eprintf("'%s' not declared; file '%s', line %i\n", name, debug->file, debug->definedat);
 	exit(1);
 }
 
 void invalidparent(SUBROUTCALL* call) {
-	fprintf(stderr, "Invalid subroutine parent '%s'; file '%s', line %i\n", call->parentname, call->debug->file, call->debug->definedat);
+	eprintf("Invalid subroutine parent '%s'; file '%s', line %i\n", call->parentname, call->debug->file, call->debug->definedat);
 	exit(1);
 }
 

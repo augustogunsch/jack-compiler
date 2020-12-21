@@ -42,7 +42,7 @@ const char* tokentypes[] = {
 DEBUGINFO* getdebug(PARSER* p) {
 	DEBUGINFO* d = (DEBUGINFO*)malloc(sizeof(DEBUGINFO));
 	d->file = p->file;
-	d->definedat = p->current->truen;
+	d->definedat = p->current->definedat;
 	return d;
 }
 
@@ -59,7 +59,7 @@ void restorecp(PARSER* p) {
 }
 
 void unexpectedtoken(PARSER* p) {
-	fprintf(stderr, "Unexpected token '%s' (of type %s); line %i, file '%s'\n", p->current->token, tokentypes[p->current->type], p->current->truen, p->file);
+	fprintf(stderr, "Unexpected token '%s' (of type %s); line %i, file '%s'\n", p->current->token, tokentypes[p->current->type], p->current->definedat, p->file);
 }
 
 void unexpected(PARSER* p) {
@@ -75,7 +75,7 @@ void checkcontent(PARSER* p, const char* content) {
 
 void checktype(PARSER* p, TOKENTYPE type) {
 	if(p->current->type != type) {
-		fprintf(stderr, "Unexpected %s; line %i, file '%s'\n", tokentypes[p->current->type], p->current->truen, p->file);
+		fprintf(stderr, "Unexpected %s; line %i, file '%s'\n", tokentypes[p->current->type], p->current->definedat, p->file);
 		exit(1);
 	}
 }
