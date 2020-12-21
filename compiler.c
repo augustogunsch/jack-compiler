@@ -127,7 +127,7 @@ LINEBLOCK* compilecallln(CLASS* c, SUBROUTCALL* call) {
 
 // temporary ignore list for OS functions
 char* ignoresubdecs[] = {
-	"printInt", "void"
+	"printInt", "void", "peek", "int"
 };
 int ignorecount = sizeof(ignoresubdecs) / sizeof(char*);
 

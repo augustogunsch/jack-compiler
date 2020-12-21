@@ -274,53 +274,65 @@ OBJ* getbynamelist(SCOPE* s, STRINGLIST* names, char** retname) {
 // Scope adding
 void addclassvardec(SCOPE* s, CLASSVARDEC* v) {
 	ensurenoduplicates(s, v->base->names, v->base->debug);
-	v->next = s->classvardecs;
-	s->classvardecs = v;
+	CLASSVARDEC* new = copy(v, sizeof(CLASSVARDEC));
+	new->next = s->classvardecs;
+	s->classvardecs = new;
 }
 
 void addvardec(SCOPE* s, VARDEC* v) {
 	ensurenoduplicates(s, v->names, v->debug);
-	v->next = s->vardecs;
-	s->vardecs = v;
+	VARDEC* new = copy(v, sizeof(VARDEC));
+	new->next = s->vardecs;
+	s->vardecs = new;
 }
 
 void addsubdec(SCOPE* s, SUBDEC* sd) {
 	ensurenoduplicate(s, sd->name, sd->debug);
-	sd->next = s->subroutines;
-	s->subroutines = sd;
+	SUBDEC* new = copy(sd, sizeof(SUBDEC));
+	new->next = s->subroutines;
+	s->subroutines = new;
 }
 
 void addclass(SCOPE* s, CLASS* c) {
 	ensurenoduplicate(s, c->name, c->debug);
-	c->next = s->classes;
-	s->classes = c;
+	CLASS* new = copy(c, sizeof(CLASS));
+	new->next = s->classes;
+	s->classes = new;
 }
 
 // Group adding
 void addclassvardecs(SCOPE* s, CLASSVARDEC* vs) {
+	CLASSVARDEC* next;
 	while(vs != NULL) {
+		next = vs->next;
 		addclassvardec(s, vs);
-		vs = vs->next;
+		vs = next;
 	}
 }
 
 void addvardecs(SCOPE* s, VARDEC* vs) {
+	VARDEC* next;
 	while(vs != NULL) {
+		next = vs->next;
 		addvardec(s, vs);
-		vs = vs->next;
+		vs = next;
 	}
 }
 
 void addsubdecs(SCOPE* s, SUBDEC* ss) {
+	SUBDEC* next;
 	while(ss != NULL) {
+		next = ss->next;
 		addsubdec(s, ss);
-		ss = ss->next;
+		ss = next;
 	}
 }
 
 void addclasses(SCOPE* s, CLASS* c) {
+	CLASS* next;
 	while(c != NULL) {
+		next = c->next;
 		addclass(s, c);
-		c = c->next;
+		c = next;
 	}
 }

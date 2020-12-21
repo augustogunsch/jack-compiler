@@ -14,6 +14,7 @@ char* heapstr(char* str, int len);
 char* ezheapstr(char* str);
 int countplaces(int n);
 char* itoa(int i);
+void* copy(void* v, int sz);
 
 void printstrlist(STRINGLIST* strlist, FILE* stream);
 void freestrlist(STRINGLIST* strlist);

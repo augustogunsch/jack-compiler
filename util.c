@@ -13,6 +13,12 @@ char* ezheapstr(char* str) {
 	return heapstr(str, strlen(str));
 }
 
+void* copy(void* v, int sz) {
+	void* copy = malloc(sz);
+	memcpy(copy, v, sz);
+	return copy;
+}
+
 int countplaces(int n) {
 	int places = 1;
 	int divisor = 1;

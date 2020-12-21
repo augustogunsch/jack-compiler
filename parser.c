@@ -106,6 +106,7 @@ TERM* parsetermnullified(PARSER* p) {
 		t->type = unaryopterm;
 		next(p);
 		t->expression = parseterm(p);
+		t->expression->next = NULL;
 	} else if(!strcmp(p->current->token, "(")) {
 		next(p);
 		t->type = innerexpression;
@@ -148,7 +149,7 @@ TERM* parseexpressionnullified(PARSER* p) {
 	while(isop(p->current)) {
 		current->op = p->current->token[0]; 
 		next(p);
-		nextt = parsetermnullified(p);
+		nextt = parseterm(p);
 		current->next = nextt;
 		current = nextt;
 	}
@@ -466,6 +467,7 @@ PARAMETER* parseparameters(PARSER* p) {
 	PARAMETER* head = parseparameter(p);
 	PARAMETER* current = head;
 	while(!strcmp(p->current->token, ",")) {
+		next(p);
 		current->next = parseparameter(p);
 		current = current->next;
 	}
@@ -518,7 +520,7 @@ SUBDEC* parsesubroutdec(PARSER* p) {
 
 SUBDEC* parsesubroutdecs(PARSER* p) {
 	SUBDEC* head = parsesubroutdec(p);
-	SUBDEC* current= head;
+	SUBDEC* current = head;
 	SUBDEC* next;
 	while(next = parsesubroutdec(p), next != NULL) {
 		current->next = next;
