@@ -10,6 +10,7 @@
 #define eprintf(...) fprintf (stderr, __VA_ARGS__)
 #define count(array, type) ((sizeof(array)) / (sizeof(type)))
 #define strcount(array) count(array, char*)
+#define mkstrlist(name, array) STRINGARRAY name = { .items = array, .size = strcount(array) }
 
 typedef struct stringlist {
 	const char* content;

@@ -3,7 +3,6 @@
 #include <string.h>
 #include "parser.h"
 
-#define mkstrlist(name, array) STRINGARRAY name = { .items = array, .size = strcount(array) }
 #define next(parser) parser->current = p->current->next
 #define anchorparser(parser) p->checkpoint = p->current
 #define rewindparser(parser) p->current = p->checkpoint

@@ -111,7 +111,12 @@ SUBROUTDEC* parsesubroutdec(PARSER* p) {
 	SUBROUTDEC* subroutdec = (SUBROUTDEC*)malloc(sizeof(SUBROUTDEC));
 	subroutdec->subroutclass = subroutclass;
 
-	subroutdec->type = parsetype(p);
+	if(differs(p, "void"))
+		subroutdec->type = parsetype(p);
+	else {
+		subroutdec->type = p->current->token;
+		next(p);
+	}
 
 	subroutdec->debug = getdebug(p);
 

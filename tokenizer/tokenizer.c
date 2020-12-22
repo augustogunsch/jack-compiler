@@ -91,19 +91,13 @@ CHARTYPE getchartype(unsigned char c) {
 }
 
 bool iskeyword(STRING* tk) {
-	for(int i = 0; i < keywordssize; i++)
-		if(!strcmp(tk->str, keywords[i]))
-			return true;
-	return false;
+	return existsinarray(&keywords, tk->str);
 }
 
 bool issymbol(STRING* tk) {
 	if(tk->count != 2)
 		return false;
-	for(int i = 0; i < symbolssize; i++)
-		if(!strcmp(tk->str, symbols[i]))
-			return true;
-	return false;
+	return existsinarray(&symbols, tk->str);
 }
 
 bool isint(char* str) {
