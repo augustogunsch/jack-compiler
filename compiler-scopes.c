@@ -5,23 +5,23 @@
 
 // INTERNAL FUNCTIONS
 // Information gathering
-bool existstr(STRINGLIST* strs, char* str);
-bool existclass(CLASS* c, char* name);
+bool existstr(STRINGLIST* strs, const char* str);
+bool existclass(CLASS* c, const char* name);
 DEBUGINFO* getdebuginfo(OBJ* obj);
 
 // Error messages
-void doubledeclaration(char* name, DEBUGINFO* debug, OBJ* other);
-void ensurenoduplicate(SCOPE* s, char* name, DEBUGINFO* debug);
+void doubledeclaration(const char* name, DEBUGINFO* debug, OBJ* other);
+void ensurenoduplicate(SCOPE* s, const char* name, DEBUGINFO* debug);
 
 // Scope handling
 void popscope(SCOPE** s); // may be removed
 
 // Single type getters
-VARDEC* getvardec(SCOPE* s, char* name);
-CLASSVARDEC* getclassvardec(SCOPE* s, char* name);
+VARDEC* getvardec(SCOPE* s, const char* name);
+CLASSVARDEC* getclassvardec(SCOPE* s, const char* name);
 
 // Generic getters
-OBJ* getbynamelist(SCOPE* s, STRINGLIST* names, char** retname);
+OBJ* getbynamelist(SCOPE* s, STRINGLIST* names, const char** retname);
 
 // Scope adding
 void addclassvardec(SCOPE* s, CLASSVARDEC* v);
@@ -31,7 +31,7 @@ void addclass(SCOPE* s, CLASS* c);
 
 // DEFINITIONS
 // Information gathering
-bool existstr(STRINGLIST* strs, char* str) {
+bool existstr(STRINGLIST* strs, const char* str) {
 	while(strs != NULL) {
 		if(!strcmp(strs->content, str))
 			return true;
@@ -40,7 +40,7 @@ bool existstr(STRINGLIST* strs, char* str) {
 	return false;
 }
 
-bool existclass(CLASS* c, char* name) {
+bool existclass(CLASS* c, const char* name) {
 	while(c != NULL) {
 		if(!strcmp(c->name, name))
 				return true;
@@ -77,14 +77,14 @@ VARDEC* tovardec(OBJ* obj) {
 
 // Error messages
 
-void doubledeclaration(char* name, DEBUGINFO* debug, OBJ* other) {
+void doubledeclaration(const char* name, DEBUGINFO* debug, OBJ* other) {
 	DEBUGINFO* debugother = other->getdebug(other);
 	eprintf("Double declaration of '%s' at '%s', line %i; previously defined at '%s', line %i\n",
 				name, debug->file, debug->definedat, debugother->file, debugother->definedat);
 	exit(1);
 }
 
-void notdeclared(char* name, DEBUGINFO* debug) {
+void notdeclared(const char* name, DEBUGINFO* debug) {
 	eprintf("'%s' not declared; file '%s', line %i\n", name, debug->file, debug->definedat);
 	exit(1);
 }
@@ -94,14 +94,14 @@ void invalidparent(SUBROUTCALL* call) {
 	exit(1);
 }
 
-void ensurenoduplicate(SCOPE* s, char* name, DEBUGINFO* debug) {
+void ensurenoduplicate(SCOPE* s, const char* name, DEBUGINFO* debug) {
 	OBJ* other = getbyname(s, name);
 	if(other != NULL)
 		doubledeclaration(name, debug, other);
 }
 
 void ensurenoduplicates(SCOPE* s, STRINGLIST* names, DEBUGINFO* debug) {
-	char* othername;
+	const char* othername;
 	OBJ* other = getbynamelist(s, names, &othername);
 	if(other != NULL)
 		doubledeclaration(othername, debug, other);
@@ -126,7 +126,7 @@ void popscope(SCOPE** s) { // might be useless
 }
 
 // Single type getters
-VARDEC* getvardec(SCOPE* s, char* name) {
+VARDEC* getvardec(SCOPE* s, const char* name) {
 	VARDEC* curr = s->vardecs;
 	while(curr != NULL) {
 		if(existstr(curr->names, name))
@@ -138,7 +138,7 @@ VARDEC* getvardec(SCOPE* s, char* name) {
 	return NULL;
 }
 
-CLASSVARDEC* getclassvardec(SCOPE* s, char* name) {
+CLASSVARDEC* getclassvardec(SCOPE* s, const char* name) {
 	CLASSVARDEC* curr = s->classvardecs;
 	while(curr != NULL) {
 		if(existstr(curr->base->names, name))
@@ -150,7 +150,7 @@ CLASSVARDEC* getclassvardec(SCOPE* s, char* name) {
 	return NULL;
 }
 
-SUBROUTDEC* getsubroutdec(SCOPE* s, char* name) {
+SUBROUTDEC* getsubroutdec(SCOPE* s, const char* name) {
 	SUBROUTDEC* curr = s->subroutines;
 	while(curr != NULL) {
 		if(!strcmp(curr->name, name))
@@ -162,7 +162,7 @@ SUBROUTDEC* getsubroutdec(SCOPE* s, char* name) {
 	return NULL;
 }
 
-CLASS* getclass(SCOPE* s, char* name) {
+CLASS* getclass(SCOPE* s, const char* name) {
 	CLASS* curr = s->classes;
 	while(curr != NULL) {
 		if(!strcmp(curr->name, name))
@@ -174,7 +174,7 @@ CLASS* getclass(SCOPE* s, char* name) {
 	return NULL;
 }
 
-SUBROUTDEC* getsubroutdecfromclass(CLASS* c, char* name) {
+SUBROUTDEC* getsubroutdecfromclass(CLASS* c, const char* name) {
 	SUBROUTDEC* curr = c->subroutdecs;
 	while(curr != NULL) {
 		if(!strcmp(curr->name, name))
@@ -218,7 +218,7 @@ SUBROUTDEC* getsubroutdecfromcall(SCOPE* s, SUBROUTCALL* call) {
 }
 
 // Generic getters
-OBJ* getbyname(SCOPE* s, char* name) {
+OBJ* getbyname(SCOPE* s, const char* name) {
 	OBJ* o = (OBJ*)malloc(sizeof(OBJ));
 
 	CLASSVARDEC* cvd = getclassvardec(s, name);
@@ -257,7 +257,7 @@ OBJ* getbyname(SCOPE* s, char* name) {
 	return NULL;
 }
 
-OBJ* getbynamelist(SCOPE* s, STRINGLIST* names, char** retname) {
+OBJ* getbynamelist(SCOPE* s, STRINGLIST* names, const char** retname) {
 	while(names != NULL) {
 		OBJ* o = getbyname(s, names->content);
 		if(o != NULL) {

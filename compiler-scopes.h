@@ -42,10 +42,10 @@ void addclasses(SCOPE* s, CLASS* c);
 SCOPE* mkscope(SCOPE* prev);
 
 // Single type getters
-SUBROUTDEC* getsubroutdec(SCOPE* s, char* name);
+SUBROUTDEC* getsubroutdec(SCOPE* s, const char* name);
 SUBROUTDEC* getsubroutdecfromcall(SCOPE* s, SUBROUTCALL* call);
-CLASS* getclass(SCOPE* s, char* name);
+CLASS* getclass(SCOPE* s, const char* name);
 
 // Generic getters
-OBJ* getbyname(SCOPE* s, char* name);
+OBJ* getbyname(SCOPE* s, const char* name);
 #endif

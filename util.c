@@ -2,20 +2,20 @@
 #include <stdlib.h>
 #include "util.h"
 
-char* heapstr(char* str, int len) {
-	int sz = sizeof(char) * (len + 1);
-	char* outstr = (char*)malloc(sz);
+char* heapstr(const char* str, int len) {
+	int size = sizeof(char) * (len + 1);
+	char* outstr = (char*)malloc(size);
 	strcpy(outstr, str);
 	return outstr;
 }
 
-char* ezheapstr(char* str) {
+char* ezheapstr(const char* str) {
 	return heapstr(str, strlen(str));
 }
 
-void* copy(void* v, int sz) {
-	void* copy = malloc(sz);
-	memcpy(copy, v, sz);
+void* copy(void* v, int size) {
+	void* copy = malloc(size);
+	memcpy(copy, v, size);
 	return copy;
 }
 
@@ -34,10 +34,23 @@ int countplaces(int n) {
 }
 
 char* itoa(int i) {
-	int sz = sizeof(char)*(countplaces(i)+1);
-	char* a = (char*)malloc(sz);
-	snprintf(a, sz, "%i", i);
+	int size = sizeof(char)*(countplaces(i)+1);
+	char* a = (char*)malloc(size);
+	snprintf(a, size, "%i", i);
 	return a;
+}
+
+STRINGLIST* initstrlist(const char** strs, int count) {
+	STRINGLIST* strlist = (STRINGLIST*)malloc(sizeof(STRINGLIST));
+	STRINGLIST* curr = strlist;
+	for(int i = 0; i < count-1; i++) {
+		curr->content = ezheapstr(strs[i]);
+		curr->next = (STRINGLIST*)malloc(sizeof(STRINGLIST));
+		curr = curr->next;
+	}
+	curr->content = ezheapstr(strs[count-1]);
+	curr->next = NULL;
+	return strlist;
 }
 
 void printstrlist(STRINGLIST* strlist, FILE* stream) {

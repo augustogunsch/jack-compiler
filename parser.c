@@ -3,41 +3,13 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "parser.h"
+#include "parser-constants.h"
 
 char* parseidentifier(PARSER* p);
 STATEMENT* parsestatements(PARSER* p);
 SUBROUTCALL* parsesubroutcall(PARSER* p);
 TERM* parseexpression(PARSER* p);
 TERM* parseterm(PARSER* p);
-
-const char* keywordconstants[] = {
-	"true", "false", "null", "this"
-};
-const int keywordconstantssize = sizeof(keywordconstants) / sizeof(char*);
-
-const char* ops[] = {
-	"+", "-", "*", "/", "&", "|", "<", ">", "="
-};
-const int opssize = sizeof(ops) / sizeof(char*);
-
-const char* classvartypes[] = {
-	"static", "field"
-};
-const int classvartypessize = sizeof(classvartypes) / sizeof(char*);
-
-const char* vardectypes[] = {
-	"int", "char", "boolean"
-};
-const int vardectypessize = sizeof(vardectypes) / sizeof(char*);
-
-const char* subroutclasses[] = {
-	"constructor", "function", "method"
-};
-const int subroutclassessize = sizeof(subroutclasses) / sizeof(char*);
-
-const char* tokentypes[] = {
-	"keyword", "identifier", "symbol", "integerConstant", "stringConstant"
-};
 
 DEBUGINFO* getdebug(PARSER* p) {
 	DEBUGINFO* d = (DEBUGINFO*)malloc(sizeof(DEBUGINFO));
@@ -59,7 +31,7 @@ void restorecp(PARSER* p) {
 }
 
 void unexpectedtoken(PARSER* p) {
-	fprintf(stderr, "Unexpected token '%s' (of type %s); line %i, file '%s'\n", p->current->token, tokentypes[p->current->type], p->current->definedat, p->file);
+	fprintf(stderr, "Unexpected token '%s' (of type %s); line %i, file '%s'\n", p->current->token, tokentypes.items[p->current->type], p->current->definedat, p->file);
 }
 
 void unexpected(PARSER* p) {
@@ -75,7 +47,7 @@ void checkcontent(PARSER* p, const char* content) {
 
 void checktype(PARSER* p, TOKENTYPE type) {
 	if(p->current->type != type) {
-		fprintf(stderr, "Unexpected %s; line %i, file '%s'\n", tokentypes[p->current->type], p->current->definedat, p->file);
+		fprintf(stderr, "Unexpected %s; line %i, file '%s'\n", tokentypes.items[p->current->type], p->current->definedat, p->file);
 		exit(1);
 	}
 }
@@ -94,8 +66,8 @@ TERM* parsetermnullified(PARSER* p) {
 	} else if(p->current->type == keyword) {
 		t->type = keywordconstant;
 		bool valid = false;
-		for(int i = 0; i < keywordconstantssize; i++)
-			if(!strcmp(p->current->token, keywordconstants[i]))
+		for(int i = 0; i < keywordconstants.size; i++)
+			if(!strcmp(p->current->token, keywordconstants.items[i]))
 				valid = true;
 		if(!valid)
 			unexpected(p);
@@ -136,8 +108,8 @@ TERM* parsetermnullified(PARSER* p) {
 }
 
 bool isop(TOKEN* t) {
-	for(int i = 0; i < opssize; i++)
-		if(!strcmp(t->token, ops[i]))
+	for(int i = 0; i < operators.size; i++)
+		if(!strcmp(t->token, operators.items[i]))
 			return true;
 	return false;
 }
@@ -338,8 +310,8 @@ STATEMENT* parsestatements(PARSER* p) {
 char* parsetype(PARSER* p, bool* primitive) {
 	char* result = p->current->token;
 	if(p->current->type == keyword)
-		for(int i = 0; i < vardectypessize; i++) {
-			if(!strcmp(p->current->token, vardectypes[i])) {
+		for(int i = 0; i < vartypes.size; i++) {
+			if(!strcmp(p->current->token, vartypes.items[i])) {
 				next(p);
 				*primitive = true;
 				return result;
@@ -354,19 +326,19 @@ char* parsetype(PARSER* p, bool* primitive) {
 		unexpected(p);
 }
 
-int parsepossibilities(PARSER* p, const char** strings, int sz) {
-	for(int i = 0; i < sz; i++)
-		if(!strcmp(p->current->token, strings[i]))
+int parsepossibilities(PARSER* p, STRINGARRAY* poss) {
+	for(int i = 0; i < poss->size; i++)
+		if(!strcmp(p->current->token, poss->items[i]))
 			return i;
 	return -1;
 }
 
 CLASSVARTYPE parseclassvartype(PARSER* p) {
-	return parsepossibilities(p, classvartypes, classvartypessize);
+	return parsepossibilities(p, &classvartypes);
 }
 
 SUBROUTCLASS parsesubroutclass(PARSER* p) {
-	return parsepossibilities(p, subroutclasses, subroutclassessize);
+	return parsepossibilities(p, &subroutclasses);
 }
 
 char* parseidentifier(PARSER* p) {

@@ -3,7 +3,6 @@
 #include <stdbool.h>
 #include "tokenizer.h"
 #include "parser-tree.h"
-#include "util.h"
 
 typedef struct {
 	TOKEN* tokens;
