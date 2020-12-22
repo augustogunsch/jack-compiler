@@ -14,6 +14,7 @@ typedef struct scope {
 	CLASSVARDEC* classvardecs;
 	VARDEC* vardecs;
 	CLASS* classes;
+	int condlabelcount;
 	struct scope* previous;
 } SCOPE;
 

@@ -2,6 +2,8 @@
 #include <string.h>
 #include "compiler.h"
 
+LINEBLOCK* compilestatements(SCOPE* s, CLASS* c, STATEMENT* sts);
+
 int countparameters(EXPRESSIONLIST* params) {
 	int i = 0;
 	while(params != NULL) {
@@ -27,8 +29,10 @@ char* dotlabel(char* n1, char* n2) {
 	return result;
 }
 
-char* subroutdecname(CLASS* c, SUBROUTDEC* sd) {
-	return dotlabel(c->name, sd->name);
+char* mkcondlabel(SCOPE* s) {
+	char* label = dotlabel("cond-label", itoa(s->condlabelcount));
+	s->condlabelcount++;
+	return label;
 }
 
 LINE* onetoken(char* str) {
@@ -86,6 +90,10 @@ LINEBLOCK* compileexpression(SCOPE* s, TERM* e) {
 	}
 	else if(e->type == innerexpression) {
 		myblk = compileexpression(s, e->expression);
+	}
+	else if(e->type == varname) {
+		eprintf("TO BE IMPLEMENTED\n");
+		exit(1);
 	}
 	else {
 		eprintf("Unsupported term yet %i\n", e->type);
@@ -165,22 +173,78 @@ LINEBLOCK* compileret(SCOPE* s, TERM* e) {
 	// void subroutdecs return 0
 	if(e == NULL) {
 		char* tokens[] = { "push", "constant", "0" };
-		appendlnbefore(block, mksimpleln(tokens, sizeof(tokens) / sizeof(char*)));
+		appendlnbefore(block, mksimpleln(tokens, strcount(tokens)));
 	} else
 		block = mergelnblks(compileexpression(s, e), block);
 
 	return block;
 }
 
-LINEBLOCK* compilestatement(SCOPE* s, CLASS* c, STATEMENT* st) {
-	if(st->type == dostatement)
-		return compilesubroutcall(s, c, st->dostatement);
-	else if(st->type == returnstatement)
-		return compileret(s, st->retstatement);
-	else {
-		eprintf("UNSUPPORTED\n");
-		exit(1);
+LINEBLOCK* compileif(SCOPE* s, CLASS* c, IFSTATEMENT* st) {
+	LINEBLOCK* block = compileexpression(s, st->base->expression);
+	appendln(block, onetoken("not"));
+	
+	char* label1 = mkcondlabel(s);
+	char* ifgoto[] = { "if-goto", label1 };
+	appendln(block, mksimpleln(ifgoto, strcount(ifgoto)));
+
+	block = mergelnblks(block, compilestatements(s, c, st->base->statements));
+
+	char* label2;
+	bool haselse = st->elsestatements != NULL;
+	if(haselse) {
+		char* label2 = mkcondlabel(s);
+		char* gotoln[] = { "goto", label2 };
+		appendln(block, mksimpleln(gotoln, strcount(gotoln)));
 	}
+
+	char* label1ln[] = { "label", label1 };
+	appendln(block, mksimpleln(label1ln, strcount(label1ln)));
+
+	if(haselse) {
+		block = mergelnblks(block, compilestatements(s, c, st->elsestatements));
+		char* label2ln[] = { "label", label2 };
+		appendln(block, mksimpleln(label2ln, strcount(label2ln)));
+	}
+
+	return block;
+}
+
+LINEBLOCK* compilewhile(SCOPE* s, CLASS* c, CONDSTATEMENT* w) {
+	LINEBLOCK* block = compileexpression(s, w->expression);
+
+	char* label1 = mkcondlabel(s);
+	char* label1ln[] = { "label", label1 };
+	appendlnbefore(block, mksimpleln(label1ln, strcount(label1ln)));
+
+	appendln(block, onetoken("not"));
+
+	char* label2 = mkcondlabel(s);
+	char* ifgoto[] = { "if-goto", label2 };
+	appendln(block, mksimpleln(ifgoto, strcount(ifgoto)));
+
+	block = mergelnblks(block, compilestatements(s, c, w->statements));
+
+	char* gotoln[] = { "goto", label1 };
+	appendln(block, mksimpleln(gotoln, strcount(gotoln)));
+
+	char* label2ln[] = { "label", label2 };
+	appendln(block, mksimpleln(label2ln, strcount(label2ln)));
+
+	return block;
+}
+
+LINEBLOCK* compilelet(SCOPE* s, CLASS* c, LETSTATEMENT* l) {
+}
+
+LINEBLOCK* compilestatement(SCOPE* s, CLASS* c, STATEMENT* st) {
+	if(st->type == dostatement) return compilesubroutcall(s, c, st->dostatement);
+	if(st->type == returnstatement) return compileret(s, st->retstatement);
+	if(st->type == ifstatement) return compileif(s, c, st->ifstatement);
+	if(st->type == whilestatement) return compilewhile(s, c, st->whilestatement);
+	if(st->type == letstatement) return compilelet(s, c, st->letstatement);
+	eprintf("UNSUPPORTED type %i\n", st->type);
+	exit(1);
 }
 
 LINEBLOCK* compilestatements(SCOPE* s, CLASS* c, STATEMENT* sts) {
@@ -201,7 +265,7 @@ LINEBLOCK* compilefunbody(SCOPE* s, CLASS* c, SUBROUTBODY* b) {
 LINEBLOCK* compilefundec(SCOPE* s, CLASS* c, SUBROUTDEC* f) {
 	LINE* label = mkline(3);
 	addtoken(label, ezheapstr("function"));
-	addtoken(label, subroutdecname(c, f));
+	addtoken(label, dotlabel(c->name, f->name));
 	addtoken(label, itoa(countlocalvars(f->body->vardecs)));
 	label->next = NULL;
 

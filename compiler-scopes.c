@@ -116,6 +116,7 @@ SCOPE* mkscope(SCOPE* prev) {
 	s->vardecs = NULL;
 	s->classes = NULL;
 	s->previous = prev;
+	s->condlabelcount = 0;
 	return s;
 }
 
