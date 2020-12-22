@@ -1,5 +1,6 @@
 #ifndef PARSER_TREE_H
 #define PARSER_TREE_H
+#include <stdbool.h>
 #include "tokenizer.h"
 #include "util.h"
 

@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#include "parser.h"
 #include "compiler.h"
 
 void printcompiler(COMPILER* c) {

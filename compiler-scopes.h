@@ -1,6 +1,6 @@
 #ifndef COMPILER_SCOPES_H
 #define COMPILER_SCOPES_H
-#include "parser.h"
+#include "parser-tree.h"
 
 /* compiler-scopes
  * Tools for dealing with scopes.
