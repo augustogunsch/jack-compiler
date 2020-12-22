@@ -1,6 +1,7 @@
 #ifndef UTIL_H
 #define UTIL_H
 #include <stdio.h>
+#include <stdbool.h>
 
 /* util
  * Random utilities. */
@@ -29,4 +30,6 @@ void* copy(void* v, int size);
 STRINGLIST* initstrlist(const char** strs, int count);
 void printstrlist(STRINGLIST* strlist, FILE* stream);
 void freestrlist(STRINGLIST* strlist);
+
+bool existsinarray(STRINGARRAY* arr, const char* item);
 #endif

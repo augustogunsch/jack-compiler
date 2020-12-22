@@ -238,7 +238,6 @@ TOKEN* tokenize(FILE* input) {
 			if(curtype == charsymbol)
 				append(tmptoken, c);
 		}
-		
 		lasttype = curtype;
 	}
 

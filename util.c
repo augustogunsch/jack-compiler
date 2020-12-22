@@ -66,3 +66,10 @@ void freestrlist(STRINGLIST* strlist) {
 	if(next != NULL)
 		freestrlist(next);
 }
+
+bool existsinarray(STRINGARRAY* arr, const char* item) {
+	for(int i = 0; i < arr->size; i++)
+		if(!strcmp(arr->items[i], item))
+			return true;
+	return false;
+}

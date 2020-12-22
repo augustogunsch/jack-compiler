@@ -10,6 +10,6 @@ typedef struct {
 } COMPILER;
 
 COMPILER* mkcompiler(CLASS* classes);
-void compile();
+void compile(COMPILER* c);
 
 #endif
