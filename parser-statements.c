@@ -18,18 +18,13 @@ STATEMENT* mkstatement(STATEMENTTYPE t) {
 	return s;
 }
 
-// Though nullified, will throw errors if the parsing was on-going
+// Though nullified, will throw errors if the parsing fails while on-going
 STATEMENT* parsestatementnullified(PARSER* p) {
-	if(equals(p, "let"))
-		return parselet(p);
-	else if(equals(p, "if"))
-		return parseif(p);
-	else if(equals(p, "while"))
-		return parsewhile(p);
-	else if(equals(p, "do"))
-		return parsedo(p);
-	else if(equals(p, "return"))
-		return parsereturn(p);
+	if(equals(p, "let")) return parselet(p);
+	if(equals(p, "if")) return parseif(p);
+	if(equals(p, "while")) return parsewhile(p);
+	if(equals(p, "do")) return parsedo(p);
+	if(equals(p, "return"))	return parsereturn(p);
 	return NULL;
 }
 

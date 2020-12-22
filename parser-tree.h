@@ -50,7 +50,6 @@ typedef enum {
 typedef struct subroutdec {
 	SUBROUTCLASS subroutclass;
 	char* type;
-	TOKENTYPE typeclass;
 	char* name;
 	struct parameter* parameters;
 	struct subroutbody* body;

@@ -5,8 +5,8 @@
 
 #define mkstrlist(name, array) STRINGARRAY name = { .items = array, .size = strcount(array) }
 #define next(parser) parser->current = p->current->next
-#define rewindparser(parser) p->checkpoint = p->current
-#define anchorparser(parser) p->current = p->checkpoint
+#define anchorparser(parser) p->checkpoint = p->current
+#define rewindparser(parser) p->current = p->checkpoint
 #define differs(parser, str) strcmp(parser->current->token, str)
 #define nextdiffers(parser, str) strcmp(parser->current->next->token, str)
 #define equals(parser, str) !differs(parser, str)

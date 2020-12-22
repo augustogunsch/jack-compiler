@@ -111,13 +111,7 @@ SUBROUTDEC* parsesubroutdec(PARSER* p) {
 	SUBROUTDEC* subroutdec = (SUBROUTDEC*)malloc(sizeof(SUBROUTDEC));
 	subroutdec->subroutclass = subroutclass;
 
-	subroutdec->typeclass = p->current->type;
-	if(equals(p, "void")) {
-		subroutdec->type = p->current->token;
-		next(p);
-	}
-	else
-		subroutdec->type = parsetype(p);
+	subroutdec->type = parsetype(p);
 
 	subroutdec->debug = getdebug(p);
 
@@ -185,7 +179,7 @@ bool isprimitive(TOKEN* tk) {
 }
 
 char* parsetype(PARSER* p) {
-	if(p->current->type != identifier);
+	if(p->current->type != identifier)
 		unexpected(p);
 
 	char* result = p->current->token;

@@ -14,6 +14,6 @@ PARSER* mkparser(TOKEN* tokens, char* file) {
 	return parser;
 }
 
-void parse(PARSER* parser) {
-	parser->output = parseclasses(parser);
+void parse(PARSER* p) {
+	p->output = parseclasses(p);
 }

@@ -26,18 +26,12 @@ mkstrlist(operators, opsarr);
 
 TERM* parsetermnullified(PARSER* p) {
 	TOKENTYPE type = p->current->type;
-	if(type == integer)
-		return parseint(p);
-	else if(type == string)
-		return parsestr(p);
-	else if(type == keyword)
-		return parsekeyword(p);
-	else if(type == identifier)
-		return parseidentifierterm(p);
-	else if(equals(p, "-") || equals(p, "~"))
-		return parseunaryopterm(p);
-	else if(equals(p, "("))
-		return parseinnerexpression(p);
+	if(type == integer) return parseint(p);
+	if(type == string) return parsestr(p);
+	if(type == keyword) return parsekeyword(p);
+	if(type == identifier) return parseidentifierterm(p);
+	if(equals(p, "-") || equals(p, "~")) return parseunaryopterm(p);
+	if(equals(p, "(")) return parseinnerexpression(p);
 	return NULL;
 }
 
@@ -94,8 +88,10 @@ TERM* parseinnerexpression(PARSER* p) {
 }
 
 TERM* parsecalltermnullified(PARSER* p) {
-	TERM* t = mkterm(subroutcall);
 	SUBROUTCALL* call = parsesubroutcallnullified(p);
+	if(call == NULL)
+		return NULL;
+	TERM* t = mkterm(subroutcall);
 	t->call == call;
 	return t;
 }
@@ -184,6 +180,7 @@ SUBROUTCALL* parsesubroutcallnullified(PARSER* p) {
 	if(p->current->type != identifier)
 		return nullsubroutcall(p, c);
 	c->name = p->current->token;
+	next(p);
 
 	if(differs(p, "("))
 		return nullsubroutcall(p, c);
