@@ -60,6 +60,8 @@ typedef struct subroutdec {
 typedef struct parameter {
 	char* type;
 	char* name;
+	int index;
+	DEBUGINFO* debug;
 	struct parameter* next;
 } PARAMETER;
 
@@ -71,10 +73,11 @@ typedef struct subroutbody {
 typedef struct vardec {
 	char* type;
 	bool primitive;
+	int index;
 	TOKENTYPE typeclass;
 	STRINGLIST* names;
-	struct vardec* next;
 	DEBUGINFO* debug;
+	struct vardec* next;
 } VARDEC;
 
 // Statements

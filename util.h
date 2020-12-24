@@ -28,6 +28,7 @@ int countplaces(int n);
 char* itoa(int i);
 void* copy(void* v, int size);
 
+STRINGLIST* onestr(const char* str);
 STRINGLIST* initstrlist(const char** strs, int count);
 void printstrlist(STRINGLIST* strlist, FILE* stream);
 void freestrlist(STRINGLIST* strlist);

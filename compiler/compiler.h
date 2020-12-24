@@ -5,6 +5,7 @@
 #include "vm-lines.h"
 
 typedef struct {
+	CLASS* classes;
 	SCOPE* globalscope;
 	LINEBLOCK* output;
 } COMPILER;

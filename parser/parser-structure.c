@@ -87,11 +87,16 @@ CLASSVARDEC* parseclassvardec(PARSER* p) {
 
 CLASSVARDEC* parseclassvardecs(PARSER* p) {
 	CLASSVARDEC* head = parseclassvardec(p);
+	if(head != NULL)
+		head->base->index = 0;
+	int index = 1;
 	CLASSVARDEC* curr = head;
-	CLASSVARDEC* next;
-	while(next = parseclassvardec(p), next != NULL) {
-		curr->next = next;
-		curr= next;
+	CLASSVARDEC* nextc;
+	while(nextc = parseclassvardec(p), nextc != NULL) {
+		nextc->base->index = index;
+		index++;
+		curr->next = nextc;
+		curr = nextc;
 	}
 	if(curr != NULL)
 		curr->next = NULL;
@@ -136,10 +141,10 @@ SUBROUTDEC* parsesubroutdec(PARSER* p) {
 SUBROUTDEC* parsesubroutdecs(PARSER* p) {
 	SUBROUTDEC* head = parsesubroutdec(p);
 	SUBROUTDEC* curr = head;
-	SUBROUTDEC* next;
-	while(next = parsesubroutdec(p), next != NULL) {
-		curr->next = next;
-		curr = next;
+	SUBROUTDEC* nexts;
+	while(nexts = parsesubroutdec(p), nexts != NULL) {
+		curr->next = nexts;
+		curr = nexts;
 	}
 	if(curr != NULL)
 		curr->next = NULL;
@@ -150,6 +155,7 @@ PARAMETER* parseparameter(PARSER* p) {
 	PARAMETER* param = (PARAMETER*)malloc(sizeof(PARAMETER));
 	if(equals(p, ")"))
 		return NULL;
+	param->debug = getdebug(p);
 	param->type = parsetype(p);
 	param->name = parseidentifier(p);
 	return param;
@@ -157,10 +163,19 @@ PARAMETER* parseparameter(PARSER* p) {
 
 PARAMETER* parseparameters(PARSER* p) {
 	PARAMETER* head = parseparameter(p);
+	if(head != NULL)
+		head->index = 0;
+	int index = 1;
 	PARAMETER* curr = head;
+	PARAMETER* nextp;
 	while(equals(p, ",")) {
 		next(p);
-		curr->next = parseparameter(p);
+		nextp = parseparameter(p);
+		if(nextp == NULL)
+			unexpected(p);
+		nextp->index = index;
+		curr->next = nextp;
+		index++;
 		curr = curr->next;
 	}
 	if(curr != NULL)
@@ -231,11 +246,16 @@ VARDEC* parsevardec(PARSER* p) {
 
 VARDEC* parsevardecs(PARSER* p) {
 	VARDEC* head = parsevardec(p);
+	if(head != NULL)
+		head->index = 0;
+	int index = 1;
 	VARDEC* curr = head;
-	VARDEC* next;
-	while(next = parsevardec(p), next != NULL) {
-		curr->next = next;
-		curr = next;
+	VARDEC* nextv;
+	while(nextv = parsevardec(p), nextv != NULL) {
+		nextv->index = index;
+		index++;
+		curr->next = nextv;
+		curr = nextv;
 	}
 	if(curr != NULL)
 		curr->next = NULL;

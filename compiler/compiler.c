@@ -257,8 +257,10 @@ LINEBLOCK* compilestatements(SCOPE* s, CLASS* c, STATEMENT* sts) {
 }
 
 LINEBLOCK* compilefunbody(SCOPE* s, CLASS* c, SUBROUTBODY* b) {
-	// missing scope and vardecs handling
-	LINEBLOCK* head = compilestatements(s, c, b->statements);
+	SCOPE* myscope = mkscope(s);
+	if(b->vardecs != NULL)
+		addvardecs(s, b->vardecs);
+	LINEBLOCK* head = compilestatements(myscope, c, b->statements);
 	return head;
 }
 
@@ -291,8 +293,10 @@ LINEBLOCK* compilesubroutdec(SCOPE* s, CLASS* c, SUBROUTDEC* sd) {
 
 LINEBLOCK* compileclass(COMPILER* c, CLASS* class) {
 	SCOPE* topscope = mkscope(c->globalscope);
-	addclassvardecs(topscope, class->vardecs);
-	addsubroutdecs(topscope, class->subroutdecs);
+	if(class->vardecs != NULL)
+		addclassvardecs(topscope, class->vardecs);
+	if(class->subroutdecs != NULL)
+		addsubroutdecs(topscope, class->subroutdecs);
 
 	LINEBLOCK* output = NULL;
 	SUBROUTDEC* curr = class->subroutdecs;
@@ -305,7 +309,7 @@ LINEBLOCK* compileclass(COMPILER* c, CLASS* class) {
 
 void compile(COMPILER* c) {
 	LINEBLOCK* output = NULL;
-	CLASS* curr = c->globalscope->classes;
+	CLASS* curr = c->classes;
 	while(curr != NULL) {
 		output = mergelnblks(output, compileclass(c, curr));
 		curr = curr->next;
@@ -317,5 +321,6 @@ COMPILER* mkcompiler(CLASS* classes) {
 	COMPILER* c = (COMPILER*)malloc(sizeof(COMPILER));
 	c->globalscope = mkscope(NULL);
 	addclasses(c->globalscope, classes);
+	c->classes = classes;
 	return c;
 }

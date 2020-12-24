@@ -9,35 +9,30 @@
  * certain semantic rules. */
 
 // Data types
-typedef struct scope {
-	SUBROUTDEC* subroutines;
-	CLASSVARDEC* classvardecs;
-	VARDEC* vardecs;
-	CLASS* classes;
-	int condlabelcount;
-	struct scope* previous;
-} SCOPE;
-
 typedef enum {
-	subroutdec, classvardec, vardec, class
+	subroutdec, classvardec, vardec, class, parameter
 } OBJTYPE;
 
 typedef struct object {
+	void* pointer;
+	DEBUGINFO* debug;
+	STRINGLIST* names;
 	OBJTYPE type;
-	union {
-		SUBROUTDEC* subroutdec;
-		CLASSVARDEC* classvardec;
-		VARDEC* vardec;
-		CLASS* class;
-	};
-	DEBUGINFO* (*getdebug)(struct object*);
+	struct object* next;
 } OBJ;
+
+typedef struct scope {
+	OBJ* objects;
+	int condlabelcount;
+	struct scope* previous;
+} SCOPE;
 
 // Group adding
 void addclassvardecs(SCOPE* s, CLASSVARDEC* vs);
 void addvardecs(SCOPE* s, VARDEC* vs);
 void addsubroutdecs(SCOPE* s, SUBROUTDEC* ss);
 void addclasses(SCOPE* s, CLASS* c);
+void addparameters(SCOPE* s, PARAMETER* p);
 
 // Scope handling
 SCOPE* mkscope(SCOPE* prev);

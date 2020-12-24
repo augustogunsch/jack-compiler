@@ -40,6 +40,13 @@ char* itoa(int i) {
 	return a;
 }
 
+STRINGLIST* onestr(const char* str) {
+	STRINGLIST* strlist = (STRINGLIST*)malloc(sizeof(STRINGLIST));
+	strlist->content = ezheapstr(str);
+	strlist->next = NULL;
+	return strlist;
+}
+
 STRINGLIST* initstrlist(const char** strs, int count) {
 	STRINGLIST* strlist = (STRINGLIST*)malloc(sizeof(STRINGLIST));
 	STRINGLIST* curr = strlist;
