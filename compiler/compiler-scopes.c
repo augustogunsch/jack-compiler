@@ -3,34 +3,34 @@
 #include <string.h>
 #include "compiler-scopes.h"
 
-// Error messages
-void doubledeclaration(const char* name, OBJ* o1, OBJ* o2);
-void ensurenoduplicate(SCOPE* s, OBJ* o);
+typedef enum { local, staticseg, arg, fieldseg } MEMSEGMENT;
+char* memsegnames[] = { "local", "static", "argument", "this" };
 
-// Generic getters
-OBJ* getbynamelist(SCOPE* s, STRINGLIST* names, const char** retname);
-OBJ* getbynamewithtype(SCOPE* s, const char* name, OBJTYPE type);
+// Error messages
+void doubledeclaration(const char* name, DEBUGINFO* d1, DEBUGINFO* d2);
+void ensurenoduplicate(SCOPE* s, char* name);
+
+// Getters
+VAR* getvarinvars(VAR* vars, const char* name);
+CLASS* getclass(SCOPE* s, const char* name);
+SUBROUTDEC* getsubroutdecfromlist(SUBROUTDEC* start, char* name);
+SUBROUTDEC* getmethod(SCOPE* s, VAR* parent, SUBROUTCALL* call);
+SUBROUTDEC* getfunction(SCOPE* s, SUBROUTCALL* call);
+SUBROUTDEC* getsubroutdecwithparent(SCOPE* s, SUBROUTCALL* call);
+SUBROUTDEC* getsubroutdecwithoutparent(SCOPE* s, SUBROUTCALL* call);
+SUBROUTDEC* getsubroutdec(SCOPE* s, const char* name);
 
 // Scope adding
+VAR* mkvar(char* type, char* name, bool primitive, DEBUGINFO* debug, MEMSEGMENT seg);
+void addvar(SCOPE* s, VAR** dest, VAR* v);
+void addlocalvar(SCOPE* s, VARDEC* v);
 void addclassvardec(SCOPE* s, CLASSVARDEC* v);
-void addvardec(SCOPE* s, VARDEC* v);
-void addsubroutdec(SCOPE* s, SUBROUTDEC* sd);
-void addclass(SCOPE* s, CLASS* c);
-
-// OBJ handling
-
-VARDEC* tovardec(OBJ* obj) {
-	if (obj->type == classvardec)
-		return ((CLASSVARDEC*)(obj->pointer))->base;
-	else if (obj->type == vardec)
-		return (VARDEC*)(obj->pointer);
-	return NULL;
-}
+void addparameter(SCOPE* s, PARAMETER* p);
 
 // Error messages
-void doubledeclaration(const char* name, OBJ* o1, OBJ* o2) {
+void doubledeclaration(const char* name, DEBUGINFO* d1, DEBUGINFO* d2) {
 	eprintf("Double declaration of '%s' at '%s', line %i; previously defined at '%s', line %i\n",
-				name, o1->debug->file, o1->debug->definedat, o2->debug->file, o2->debug->definedat);
+				name, d1->file, d1->definedat, d2->file, d2->definedat);
 	exit(1);
 }
 
@@ -44,158 +44,224 @@ void invalidparent(SUBROUTCALL* call) {
 	exit(1);
 }
 
-void ensurenoduplicate(SCOPE* s, OBJ* o) {
-	const char* othername;
-	OBJ* other = getbynamelist(s, o->names, &othername);
-	if(other != NULL)
-		doubledeclaration(othername, o, other);
+void ensurenoduplicate(SCOPE* s, char* name) {
+	VAR* v = getvar(s, name);
+	if(v != NULL)
+		doubledeclaration(name, s->currdebug, v->debug);
+
+	CLASS* c = getclass(s, name);
+	if(c != NULL)
+		doubledeclaration(name, s->currdebug, c->debug);
+
+	SUBROUTDEC* sr = getsubroutdec(s, name);
+	if(sr != NULL)
+		doubledeclaration(name, s->currdebug, sr->debug);
 }
 
 // Scope handling
-
 SCOPE* mkscope(SCOPE* prev) {
 	SCOPE* s = (SCOPE*)malloc(sizeof(SCOPE));
-	s->objects = NULL;
 	s->previous = prev;
-	s->condlabelcount = 0;
+	s->localvars = NULL;
+	s->fields = NULL;
+	s->staticvars = NULL;
+	s->parameters = NULL;
+	s->classes = NULL;
+	s->subroutines = NULL;
 	return s;
 }
 
-// Single type getters
-SUBROUTDEC* getsubroutdec(SCOPE* s, const char* name) {
-	return (SUBROUTDEC*)(getbynamewithtype(s, name, subroutdec)->pointer);
+// Getters
+VAR* getvarinvars(VAR* vars, const char* name) {
+	while(vars != NULL) {
+		if(!strcmp(vars->name, name))
+			return vars;
+		vars = vars->next;
+	}
+	return NULL;
+}
+
+VAR* getvar(SCOPE* s, const char* name) {
+	VAR* var = getvarinvars(s->localvars, name);
+	if(var != NULL)
+		return var;
+	var = getvarinvars(s->parameters, name);
+	if(var != NULL)
+		return var;
+	var = getvarinvars(s->fields, name);
+	if(var != NULL)
+		return var;
+	var = getvarinvars(s->staticvars, name);
+	if(var != NULL)
+		return var;
+	if(s->previous != NULL)
+		return getvar(s->previous, name);
+	return NULL;
 }
 
 CLASS* getclass(SCOPE* s, const char* name) {
-	return (CLASS*)(getbynamewithtype(s, name, class)->pointer);
-}
-
-SUBROUTDEC* getsubroutdecfromclass(CLASS* c, const char* name) {
-	SUBROUTDEC* curr = c->subroutdecs;
+	CLASS* curr = s->classes;
 	while(curr != NULL) {
 		if(!strcmp(curr->name, name))
 			return curr;
 		curr = curr->next;
 	}
+	if(s->previous != NULL)
+		return getclass(s->previous, name);
 	return NULL;
 }
 
-SUBROUTDEC* getsubroutdecfromvar(SCOPE* s, OBJ* var, SUBROUTCALL* call) {
-	VARDEC* vd = tovardec(var);
-	if(vd == NULL || vd->primitive)
-		invalidparent(call);
-	CLASS* c = getclass(s, vd->type);
-	return getsubroutdecfromclass(c, call->name);
+SUBROUTDEC* getsubroutdecfromlist(SUBROUTDEC* start, char* name) {
+	while(start != NULL) {
+		if(!strcmp(start->name, name))
+			return start;
+		start = start->next;
+	}
+	return NULL;
 }
 
-SUBROUTDEC* getsubroutdecfromparent(SCOPE* s, SUBROUTCALL* call) {
-	SUBROUTDEC* sd;
+SUBROUTDEC* getmethod(SCOPE* s, VAR* parent, SUBROUTCALL* call) {
+	CLASS* c = getclass(s, parent->type);
+	SUBROUTDEC* d = getsubroutdecfromlist(c->subroutdecs, call->name);
+	if(d == NULL)
+		notdeclared(call->name, call->debug);
+	if(d->subroutclass == function) {
+		eprintf("Calling a function as if it were a method; file '%s', line %i\n", call->debug->file, call->debug->definedat);
+		exit(1);
+	}
+	return d;
+}
 
-	OBJ* parent = getbyname(s, call->parentname);
-	if(parent == NULL)
+SUBROUTDEC* getfunction(SCOPE* s, SUBROUTCALL* call) {
+	CLASS* c = getclass(s, call->parentname);
+	if(c == NULL)
 		notdeclared(call->parentname, call->debug);
+	SUBROUTDEC* d = getsubroutdecfromlist(c->subroutdecs, call->name);
+	if(d == NULL)
+		notdeclared(call->name, call->debug);
+	if(d->subroutclass == method) {
+		eprintf("Calling a method as if it were a function; file '%s', line %i\n", call->debug->file, call->debug->definedat);
+		exit(1);
+	}
+	return d;
+}
 
-	if(parent->type == class)
-		sd = getsubroutdecfromclass(parent->pointer, call->name);
-	else
-		sd = getsubroutdecfromvar(s, parent, call);
-	return sd;
+SUBROUTDEC* getsubroutdecwithparent(SCOPE* s, SUBROUTCALL* call) {
+	VAR* parent = getvar(s, call->parentname);
+	if(parent != NULL)
+		return getmethod(s, parent, call);
+	else 
+		return getfunction(s, call);
+}
+
+SUBROUTDEC* getsubroutdecwithoutparent(SCOPE* s, SUBROUTCALL* call) {
+	SUBROUTDEC* d = getsubroutdecfromlist(s->currclass->subroutdecs, call->name);
+	if(d == NULL)
+		notdeclared(call->name, call->debug);
+	return d;
 }
 
 SUBROUTDEC* getsubroutdecfromcall(SCOPE* s, SUBROUTCALL* call) {
-	SUBROUTDEC* sd;
 	if(call->parentname != NULL)
-		sd = getsubroutdecfromparent(s, call);
+		return getsubroutdecwithparent(s, call);
 	else
-		sd = getsubroutdec(s, call->name);
-	if(sd == NULL)
-		notdeclared(call->name, call->debug);
-	return sd;
+		return getsubroutdecwithoutparent(s, call);
 }
 
-// Generic getters
-OBJ* getbynamelist(SCOPE* s, STRINGLIST* names, const char** retname) {
-	OBJ* curr = s->objects;
+SUBROUTDEC* getsubroutdec(SCOPE* s, const char* name) {
+	SUBROUTDEC* curr = s->subroutines;
 	while(curr != NULL) {
-		STRINGLIST* currn = curr->names;
-		while(currn != NULL) {
-			STRINGLIST* currattempt = names;
-			while(currattempt != NULL) {
-				if(!strcmp(currn->content, currattempt->content)) {
-					*retname = currn->content;
-					return curr;
-				}
-				currattempt = currattempt->next;
-			}
-			currn = currn->next;
-		}
+		if(!strcmp(curr->name, name))
+			return curr;
 		curr = curr->next;
 	}
 	if(s->previous != NULL)
-		return getbynamelist(s->previous, names, retname);
+		return getsubroutdec(s->previous, name);
 	return NULL;
 }
 
-
-OBJ* getbyname(SCOPE* s, const char* name) {
-	STRINGLIST* onename = onestr(name);
-	const char* dummy;
-	return getbynamelist(s, onename, &dummy);
-}
-
-OBJ* getbynamewithtype(SCOPE* s, const char* name, OBJTYPE type) {
-	OBJ* o = getbyname(s, name);
-	if(o->type != type)
-		notdeclared(name, o->debug);
-	return o;
-}
-
 // Scope adding
-void addobj(SCOPE* s, OBJ* o) {
-	ensurenoduplicate(s, o);
-	o->next = s->objects;
-	s->objects = o;
+VAR* mkvar(char* type, char* name, bool primitive, DEBUGINFO* debug, MEMSEGMENT seg) {
+	VAR* v = (VAR*)malloc(sizeof(VAR));
+	v->name = name;
+	v->type = type;
+	v->debug = debug;
+	v->memsegment = memsegnames[seg];
+	v->primitive = primitive;
+	return v;
 }
 
-OBJ* mkobj(void* pointer, OBJTYPE type, DEBUGINFO* debug, STRINGLIST* names) {
-	OBJ* o = (OBJ*)malloc(sizeof(OBJ));
-	o->pointer = pointer;
-	o->type = type;
-	o->debug = debug;
-	o->names = names;
-	return o;
+void addvar(SCOPE* s, VAR** dest, VAR* v) {
+	ensurenoduplicate(s, v->name);
+
+	if(!v->primitive) {
+		CLASS* type = getclass(s, v->type);
+		if(type == NULL)
+			notdeclared(v->type, v->debug);
+	}
+
+	if(*dest == NULL)
+		v->index = 0;
+	else
+		v->index = 1+(*dest)->index;
+
+	v->next = *dest;
+	*dest = v;
 }
 
-void addany(SCOPE* s, void* pointer, OBJTYPE type, DEBUGINFO* debug, STRINGLIST* names) {
-	addobj(s, mkobj(pointer, type, debug, names));
+void addlocalvar(SCOPE* s, VARDEC* v) {
+	STRINGLIST* currname = v->names;
+	while(currname != NULL) {
+		addvar(s, &(s->localvars), mkvar(v->type, currname->content, v->primitive, v->debug, local));
+		currname = currname->next;
+	}
 }
 
-void addclassvardecs(SCOPE* s, CLASSVARDEC* v) {
-	addany(s, v, classvardec, v->base->debug, v->base->names);
-	if(v->next != NULL)
-		addclassvardecs(s, v->next);
+void addstaticvar(SCOPE* s, CLASSVARDEC* v) {
+	STRINGLIST* currname = v->base->names;
+	while(currname != NULL) {
+		addvar(s, &(s->staticvars), mkvar(v->base->type, currname->content, v->base->primitive, v->base->debug, staticseg));
+		currname = currname->next;
+	}
 }
 
-void addvardecs(SCOPE* s, VARDEC* v) {
-	addany(s, v, vardec, v->debug, v->names);
-	if(v->next != NULL)
-		addvardecs(s, v->next);
+void addfield(SCOPE* s, CLASSVARDEC* v) {
+	STRINGLIST* currname = v->base->names;
+	while(currname != NULL) {
+		addvar(s, &(s->fields), mkvar(v->base->type, currname->content, v->base->primitive, v->base->debug, fieldseg));
+		currname = currname->next;
+	}
 }
 
-void addsubroutdecs(SCOPE* s, SUBROUTDEC* sd) {
-	addany(s, sd, subroutdec, sd->debug, onestr(sd->name));
-	if(sd->next != NULL)
-		addsubroutdecs(s, sd->next);
+void addclassvardec(SCOPE* s, CLASSVARDEC* v) {
+	if(v->type == staticseg)
+		addstaticvar(s, v);
+	else
+		addfield(s, v);
 }
 
-void addclasses(SCOPE* s, CLASS* c) {
-	addany(s, c, class, c->debug, onestr(c->name));
-	if(c->next != NULL)
-		addclasses(s, c->next);
+void addparameter(SCOPE* s, PARAMETER* p) {
+	addvar(s, &(s->parameters), mkvar(p->type, p->name, p->primitive, p->debug, arg));
 }
 
-void addparameters(SCOPE* s, PARAMETER* p) {
-	addany(s, p, parameter, p->debug, onestr(p->name));
-	if(p->next != NULL)
-		addparameters(s, p->next);
+// Group adding
+void addclassvardecs(SCOPE* s, CLASSVARDEC* classvardecs) {
+	while(classvardecs != NULL) {
+		addclassvardec(s, classvardecs);
+		classvardecs = classvardecs->next;
+	}
+}
+
+void addlocalvars(SCOPE* s, VARDEC* localvars) {
+	while(localvars != NULL) {
+		addlocalvar(s, localvars);
+		localvars = localvars->next;
+	}
+}
+
+void addparameters(SCOPE* s, PARAMETER* params) {
+	while(params != NULL) {
+		addparameter(s, params);
+		params = params->next;
+	}
 }

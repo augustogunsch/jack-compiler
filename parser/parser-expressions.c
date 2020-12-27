@@ -73,6 +73,7 @@ TERM* parsekeyword(PARSER* p) {
 
 TERM* parseunaryopterm(PARSER* p) {
 	TERM* t = mkterm(unaryopterm);
+	t->unaryop = p->current->token[0];
 	next(p);
 	t->expression = parseterm(p);
 	t->expression->next = NULL;
@@ -92,7 +93,7 @@ TERM* parsecalltermnullified(PARSER* p) {
 	if(call == NULL)
 		return NULL;
 	TERM* t = mkterm(subroutcall);
-	t->call == call;
+	t->call = call;
 	return t;
 }
 

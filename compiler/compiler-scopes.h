@@ -9,39 +9,43 @@
  * certain semantic rules. */
 
 // Data types
-typedef enum {
-	subroutdec, classvardec, vardec, class, parameter
-} OBJTYPE;
-
-typedef struct object {
-	void* pointer;
+typedef struct var {
 	DEBUGINFO* debug;
-	STRINGLIST* names;
-	OBJTYPE type;
-	struct object* next;
-} OBJ;
+	char* memsegment;
+	char* type;
+	char* name;
+	int index;
+	bool primitive;
+	struct var* next;
+} VAR;
 
 typedef struct scope {
-	OBJ* objects;
-	int condlabelcount;
+	DEBUGINFO* currdebug;
+	CLASS* currclass;
+
+	CLASS* classes;
+	SUBROUTDEC* subroutines;
+
+	VAR* fields;
+	VAR* staticvars;
+	VAR* localvars;
+	VAR* parameters;
+
 	struct scope* previous;
 } SCOPE;
 
 // Group adding
-void addclassvardecs(SCOPE* s, CLASSVARDEC* vs);
-void addvardecs(SCOPE* s, VARDEC* vs);
-void addsubroutdecs(SCOPE* s, SUBROUTDEC* ss);
-void addclasses(SCOPE* s, CLASS* c);
-void addparameters(SCOPE* s, PARAMETER* p);
+void addclassvardecs(SCOPE* s, CLASSVARDEC* classvardecs);
+void addlocalvars(SCOPE* s, VARDEC* localvars);
+void addparameters(SCOPE* s, PARAMETER* params);
 
 // Scope handling
 SCOPE* mkscope(SCOPE* prev);
 
 // Single type getters
-SUBROUTDEC* getsubroutdec(SCOPE* s, const char* name);
 SUBROUTDEC* getsubroutdecfromcall(SCOPE* s, SUBROUTCALL* call);
 CLASS* getclass(SCOPE* s, const char* name);
 
 // Generic getters
-OBJ* getbyname(SCOPE* s, const char* name);
+VAR* getvar(SCOPE* s, const char* name);
 #endif

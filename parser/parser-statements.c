@@ -3,7 +3,7 @@
 #include "parser-internal.h"
 #include "parser-statements.h"
 
-STATEMENT* mkstatement(STATEMENTTYPE t);
+STATEMENT* mkstatement(PARSER* p, STATEMENTTYPE t);
 STATEMENT* parsestatementnullified(PARSER* p);
 STATEMENT* parselet(PARSER* p);
 CONDSTATEMENT* parsecond(PARSER* p);
@@ -12,9 +12,10 @@ STATEMENT* parsewhile(PARSER* p);
 STATEMENT* parsedo(PARSER* p);
 STATEMENT* parsereturn(PARSER* p);
 
-STATEMENT* mkstatement(STATEMENTTYPE t) {
+STATEMENT* mkstatement(PARSER* p, STATEMENTTYPE t) {
 	STATEMENT* s = (STATEMENT*)malloc(sizeof(STATEMENT));
 	s->type = t;
+	s->debug = getdebug(p);
 	return s;
 }
 
@@ -43,8 +44,8 @@ STATEMENT* parsestatements(PARSER* p) {
 
 STATEMENT* parselet(PARSER* p) {
 	next(p);
-	STATEMENT* s = mkstatement(letstatement);
-	LETSTATEMENT* letst= (LETSTATEMENT*)malloc(sizeof(LETSTATEMENT));
+	STATEMENT* s = mkstatement(p, letstatement);
+	LETSTATEMENT* letst = (LETSTATEMENT*)malloc(sizeof(LETSTATEMENT));
 
 	letst->varname = parseidentifier(p);
 	
@@ -63,6 +64,7 @@ STATEMENT* parselet(PARSER* p) {
 	checkcontent(p, ";");
 
 	s->type = letstatement;
+	s->letstatement = letst;
 	return s;
 }
 
@@ -84,7 +86,7 @@ CONDSTATEMENT* parsecond(PARSER* p) {
 
 STATEMENT* parseif(PARSER* p) {
 	next(p);
-	STATEMENT* s = mkstatement(ifstatement);
+	STATEMENT* s = mkstatement(p, ifstatement);
 	IFSTATEMENT* ifst = (IFSTATEMENT*)malloc(sizeof(IFSTATEMENT));
 
 	ifst->base = parsecond(p);
@@ -99,12 +101,13 @@ STATEMENT* parseif(PARSER* p) {
 		ifst->elsestatements = NULL;
 
 	s->type = ifstatement;
+	s->ifstatement = ifst;
 	return s;
 }
 
 STATEMENT* parsewhile(PARSER* p) {
 	next(p);
-	STATEMENT* s = mkstatement(whilestatement);
+	STATEMENT* s = mkstatement(p, whilestatement);
 
 	s->whilestatement = parsecond(p);
 	return s;
@@ -112,7 +115,7 @@ STATEMENT* parsewhile(PARSER* p) {
 
 STATEMENT* parsedo(PARSER* p) {
 	next(p);
-	STATEMENT* s = mkstatement(dostatement);
+	STATEMENT* s = mkstatement(p, dostatement);
 
 	s->dostatement = parsesubroutcall(p);
 
@@ -122,7 +125,7 @@ STATEMENT* parsedo(PARSER* p) {
 
 STATEMENT* parsereturn(PARSER* p) {
 	next(p);
-	STATEMENT* s = mkstatement(returnstatement);
+	STATEMENT* s = mkstatement(p, returnstatement);
 
 	s->retstatement = parseexpressionnullified(p);
 

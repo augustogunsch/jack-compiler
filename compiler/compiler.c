@@ -2,9 +2,11 @@
 #include <string.h>
 #include "compiler.h"
 
-LINEBLOCK* compilestatements(SCOPE* s, CLASS* c, STATEMENT* sts);
+LINEBLOCK* compilestatements(SCOPE* s, STATEMENT* sts);
+LINEBLOCK* compilesubroutcall(SCOPE* s, SUBROUTCALL* call);
+LINEBLOCK* compileexpression(SCOPE* s, TERM* e);
 
-int countparameters(EXPRESSIONLIST* params) {
+int countparameters(PARAMETER* params) {
 	int i = 0;
 	while(params != NULL) {
 		i++;
@@ -13,10 +15,23 @@ int countparameters(EXPRESSIONLIST* params) {
 	return i;
 }
 
+int countexpressions(EXPRESSIONLIST* explist) {
+	int i = 0;
+	while(explist != NULL) {
+		i++;
+		explist = explist->next;
+	}
+	return i;
+}
+
 int countlocalvars(VARDEC* decs) {
 	int i = 0;
 	while(decs != NULL) {
-		i++;
+		STRINGLIST* curr = decs->names;
+		while(curr != NULL) {
+			i++;
+			curr = curr->next;
+		}
 		decs = decs->next;
 	}
 	return i;
@@ -29,10 +44,11 @@ char* dotlabel(char* n1, char* n2) {
 	return result;
 }
 
-char* mkcondlabel(SCOPE* s) {
-	char* label = dotlabel("cond-label", itoa(s->condlabelcount));
-	s->condlabelcount++;
-	return label;
+char* mkcondlabel(char* name, int count) {
+	int sz = (strlen(name) + countplaces(count) + 1) * sizeof(char);
+	char* result = (char*)malloc(sz);
+	sprintf(result, "%s%i", name, count);
+	return result;
 }
 
 LINE* onetoken(char* str) {
@@ -75,50 +91,94 @@ LINE* mathopln(char op) {
 	}
 }
 
-LINEBLOCK* compileexpression(SCOPE* s, TERM* e) {
-	LINEBLOCK* myblk;
-	LINEBLOCK* next = NULL;
-
-	if(e->type == intconstant) {
-		char* tokens[] = { "push", "constant", itoa(e->integer) };
-		myblk = mklnblk(mksimpleln(tokens, strcount(tokens)));
-	}
-	else if(e->type == unaryopterm) {
-		myblk = compileexpression(s, e->expression);
-		LINE* neg = onetoken("neg");
-		appendln(myblk, neg);
-	}
-	else if(e->type == innerexpression) {
-		myblk = compileexpression(s, e->expression);
-	}
-	else if(e->type == varname) {
-		eprintf("TO BE IMPLEMENTED\n");
-		exit(1);
-	}
-	else {
-		eprintf("Unsupported term yet %i\n", e->type);
-		exit(1);
-	}
-
-	if(e->next != NULL) {
-		next = compileexpression(s, e->next);
-		appendln(next, mathopln(e->op));
-		myblk = mergelnblks(myblk, next);
-	}
-
-	return myblk;
+LINEBLOCK* pushconstant(int n) {
+	char* tokens[] = { "push", "constant", itoa(n) };
+	return mklnblk(mksimpleln(tokens, strcount(tokens)));
 }
 
-LINEBLOCK* compileparameters(SCOPE* s, EXPRESSIONLIST* params) {
+LINEBLOCK* pushunaryopterm(SCOPE* s, TERM* t) {
+	LINEBLOCK* blk = compileexpression(s, t->expression);
+	LINE* neg;
+	if(t->unaryop == '-')
+	       	neg = onetoken("neg");
+	else
+		neg = onetoken("not");
+	appendln(blk, neg);
+	return blk;
+}
+
+LINEBLOCK* opvar(SCOPE* s, char* op, const char* name) {
+	VAR* v = getvar(s, name);
+	char* tokens[] = { op, v->memsegment, itoa(v->index) };
+	return mklnblk(mksimpleln(tokens, strcount(tokens)));
+
+}
+
+LINEBLOCK* pushvar(SCOPE* s, const char* name) {
+	return opvar(s, "push", name);
+}
+
+LINEBLOCK* popvar(SCOPE* s, const char* name) {
+	return opvar(s, "pop", name);
+}
+
+LINEBLOCK* pushfalse() {
+	return pushconstant(0);
+}
+
+LINEBLOCK* pushtrue() {
+	LINEBLOCK* blk = pushfalse();
+	appendln(blk, onetoken("not"));
+	return blk;
+}
+
+LINEBLOCK* compilekeywordconst(SCOPE* s, TERM* t) {
+	if(!strcmp(t->string, "true")) return pushtrue();
+	if(!strcmp(t->string, "false")) return pushfalse();
+	eprintf("Unsupported keyword '%s'\n", t->string);
+	exit(1);
+}
+
+LINEBLOCK* compileterm(SCOPE* s, TERM* t) {
+	if(t->type == intconstant) return pushconstant(t->integer);
+	if(t->type == unaryopterm) return pushunaryopterm(s, t);
+	if(t->type == innerexpression) return compileexpression(s, t->expression);
+	if(t->type == varname) return pushvar(s, t->string);
+	if(t->type == subroutcall) return compilesubroutcall(s, t->call);
+	if(t->type == keywordconstant) return compilekeywordconst(s, t);
+	else {
+		eprintf("Unsupported term yet %i\n", t->type);
+		exit(1);
+	}
+}
+
+LINEBLOCK* compileexpression(SCOPE* s, TERM* e) {
+	LINEBLOCK* blk = compileterm(s, e);
+	TERM* curr = e->next;
+	if(curr != NULL) {
+		while(true) {
+			blk = mergelnblks(blk, compileterm(s, curr));
+			if(curr->next != NULL) {
+				appendln(blk, mathopln(curr->op));
+				curr = curr->next;
+			}
+			else break;
+		}
+		appendln(blk, mathopln(e->op));
+	}
+	return blk;
+}
+
+LINEBLOCK* compileexplist(SCOPE* s, EXPRESSIONLIST* explist) {
 	LINEBLOCK* head = NULL;
-	while(params != NULL) {
-		head = mergelnblks(head, compileexpression(s, params->expression));
-		params = params->next;
+	while(explist != NULL) {
+		head = mergelnblks(head, compileexpression(s, explist->expression));
+		explist = explist->next;
 	}
 	return head;
 }
 
-LINEBLOCK* compilecallln(CLASS* c, SUBROUTCALL* call) {
+LINEBLOCK* compilecallln(SCOPE* s, SUBROUTCALL* call) {
 	LINE* ln = mkline(3);
 
 	addtoken(ln, ezheapstr("call"));
@@ -126,24 +186,24 @@ LINEBLOCK* compilecallln(CLASS* c, SUBROUTCALL* call) {
 	if(call->parentname != NULL)
 		addtoken(ln, dotlabel(call->parentname, call->name));
 	else
-		addtoken(ln, dotlabel(c->name, call->name));
+		addtoken(ln, dotlabel(s->currclass->name, call->name));
 
-	addtoken(ln, itoa(countparameters(call->parameters)));
+	addtoken(ln, itoa(countexpressions(call->parameters)));
 
 	return mklnblk(ln);
 }
 
 // temporary ignore list for OS functions
 char* ignoresubroutdecs[] = {
-	"printInt", "void", "peek", "int"
+	"printInt", "void", "peek", "int", "poke", "void"
 };
 int ignorecount = sizeof(ignoresubroutdecs) / sizeof(char*);
 
-LINEBLOCK* compilesubroutcall(SCOPE* s, CLASS* c, SUBROUTCALL* call) {
-	LINEBLOCK* block = compilecallln(c, call);
+LINEBLOCK* compilesubroutcall(SCOPE* s, SUBROUTCALL* call) {
+	LINEBLOCK* blk = compilecallln(s, call);
 
 	if(call->parameters != NULL)
-		block = mergelnblks(compileparameters(s, call->parameters), block);
+		blk = mergelnblks(compileexplist(s, call->parameters), blk);
 
 	// void functions always return 0
 	// therefore must be thrown away
@@ -160,97 +220,117 @@ LINEBLOCK* compilesubroutcall(SCOPE* s, CLASS* c, SUBROUTCALL* call) {
 		type = getsubroutdecfromcall(s, call)->type;
 	if(!strcmp(type, "void")) {
 		char* tokens[] = { "pop", "temp", "0" };
-		appendln(block, mksimpleln(tokens, sizeof(tokens) / sizeof(char*)));
+		appendln(blk, mksimpleln(tokens, sizeof(tokens) / sizeof(char*)));
 	}
 
-	return block;
+	return blk;
 }
 
 LINEBLOCK* compileret(SCOPE* s, TERM* e) {
 	LINE* ret = onetoken("return");
-	LINEBLOCK* block = mklnblk(ret);
+	LINEBLOCK* blk = mklnblk(ret);
 
 	// void subroutdecs return 0
 	if(e == NULL) {
 		char* tokens[] = { "push", "constant", "0" };
-		appendlnbefore(block, mksimpleln(tokens, strcount(tokens)));
+		appendlnbefore(blk, mksimpleln(tokens, strcount(tokens)));
 	} else
-		block = mergelnblks(compileexpression(s, e), block);
+		blk = mergelnblks(compileexpression(s, e), blk);
 
-	return block;
+	return blk;
 }
 
-LINEBLOCK* compileif(SCOPE* s, CLASS* c, IFSTATEMENT* st) {
-	LINEBLOCK* block = compileexpression(s, st->base->expression);
-	appendln(block, onetoken("not"));
+LINEBLOCK* compileif(SCOPE* s, IFSTATEMENT* st) {
+	LINEBLOCK* blk = compileexpression(s, st->base->expression);
+
+	static int ifcount = 0;
+	int mycount = ifcount;
+	ifcount++;
 	
-	char* label1 = mkcondlabel(s);
-	char* ifgoto[] = { "if-goto", label1 };
-	appendln(block, mksimpleln(ifgoto, strcount(ifgoto)));
+	char* truelabel = mkcondlabel("IF_TRUE", mycount);
+	char* ifgoto[] = { "if-goto", truelabel };
+	appendln(blk, mksimpleln(ifgoto, strcount(ifgoto)));
+	
+	char* falselabel = mkcondlabel("IF_FALSE", mycount);
+	char* gotofalse[] = { "goto", falselabel };
+	appendln(blk, mksimpleln(gotofalse, strcount(gotofalse)));
 
-	block = mergelnblks(block, compilestatements(s, c, st->base->statements));
+	char* truelabelln[] = { "label", truelabel };
+	appendln(blk, mksimpleln(truelabelln, strcount(truelabelln)));
 
-	char* label2;
+	blk = mergelnblks(blk, compilestatements(s, st->base->statements));
+
+	char* endlabel;
 	bool haselse = st->elsestatements != NULL;
 	if(haselse) {
-		char* label2 = mkcondlabel(s);
-		char* gotoln[] = { "goto", label2 };
-		appendln(block, mksimpleln(gotoln, strcount(gotoln)));
+		endlabel = mkcondlabel("IF_END", mycount);
+		char* endgoto[] = { "goto", endlabel };
+		appendln(blk, mksimpleln(endgoto, strcount(endgoto)));
 	}
 
-	char* label1ln[] = { "label", label1 };
-	appendln(block, mksimpleln(label1ln, strcount(label1ln)));
+	char* falselabelln[] = { "label", falselabel};
+	appendln(blk, mksimpleln(falselabelln, strcount(falselabelln)));
 
 	if(haselse) {
-		block = mergelnblks(block, compilestatements(s, c, st->elsestatements));
-		char* label2ln[] = { "label", label2 };
-		appendln(block, mksimpleln(label2ln, strcount(label2ln)));
+		blk = mergelnblks(blk, compilestatements(s, st->elsestatements));
+		char* endlabelln[] = { "label", endlabel };
+		appendln(blk, mksimpleln(endlabelln, strcount(endlabelln)));
 	}
 
-	return block;
+
+	return blk;
 }
 
-LINEBLOCK* compilewhile(SCOPE* s, CLASS* c, CONDSTATEMENT* w) {
-	LINEBLOCK* block = compileexpression(s, w->expression);
+LINEBLOCK* compilewhile(SCOPE* s, CONDSTATEMENT* w) {
+	LINEBLOCK* blk = compileexpression(s, w->expression);
 
-	char* label1 = mkcondlabel(s);
-	char* label1ln[] = { "label", label1 };
-	appendlnbefore(block, mksimpleln(label1ln, strcount(label1ln)));
+	static int whilecount = 0;
+	int mycount = whilecount;
+	whilecount++;
 
-	appendln(block, onetoken("not"));
+	char* explabel = mkcondlabel("WHILE_EXP", mycount);
+	char* explabelln[] = { "label", explabel };
+	appendlnbefore(blk, mksimpleln(explabelln, strcount(explabelln)));
 
-	char* label2 = mkcondlabel(s);
-	char* ifgoto[] = { "if-goto", label2 };
-	appendln(block, mksimpleln(ifgoto, strcount(ifgoto)));
+	appendln(blk, onetoken("not"));
 
-	block = mergelnblks(block, compilestatements(s, c, w->statements));
+	char* endlabel = mkcondlabel("WHILE_END", mycount);
+	char* ifgoto[] = { "if-goto", endlabel };
+	appendln(blk, mksimpleln(ifgoto, strcount(ifgoto)));
 
-	char* gotoln[] = { "goto", label1 };
-	appendln(block, mksimpleln(gotoln, strcount(gotoln)));
+	blk = mergelnblks(blk, compilestatements(s, w->statements));
 
-	char* label2ln[] = { "label", label2 };
-	appendln(block, mksimpleln(label2ln, strcount(label2ln)));
+	char* gotoln[] = { "goto", explabel };
+	appendln(blk, mksimpleln(gotoln, strcount(gotoln)));
 
-	return block;
+	char* endlabelln[] = { "label", endlabel };
+	appendln(blk, mksimpleln(endlabelln, strcount(endlabelln)));
+
+	return blk;
 }
 
-LINEBLOCK* compilelet(SCOPE* s, CLASS* c, LETSTATEMENT* l) {
+LINEBLOCK* compilelet(SCOPE* s, LETSTATEMENT* l) {
+	// missing array ind
+	LINEBLOCK* blk = compileexpression(s, l->expression);
+	blk = mergelnblks(blk, popvar(s, l->varname));
+	return blk;
 }
 
-LINEBLOCK* compilestatement(SCOPE* s, CLASS* c, STATEMENT* st) {
-	if(st->type == dostatement) return compilesubroutcall(s, c, st->dostatement);
+LINEBLOCK* compilestatement(SCOPE* s, STATEMENT* st) {
+	s->currdebug = st->debug;
+	if(st->type == dostatement) return compilesubroutcall(s, st->dostatement);
 	if(st->type == returnstatement) return compileret(s, st->retstatement);
-	if(st->type == ifstatement) return compileif(s, c, st->ifstatement);
-	if(st->type == whilestatement) return compilewhile(s, c, st->whilestatement);
-	if(st->type == letstatement) return compilelet(s, c, st->letstatement);
+	if(st->type == ifstatement) return compileif(s, st->ifstatement);
+	if(st->type == whilestatement) return compilewhile(s, st->whilestatement);
+	if(st->type == letstatement) return compilelet(s, st->letstatement);
 	eprintf("UNSUPPORTED type %i\n", st->type);
 	exit(1);
 }
 
-LINEBLOCK* compilestatements(SCOPE* s, CLASS* c, STATEMENT* sts) {
+LINEBLOCK* compilestatements(SCOPE* s, STATEMENT* sts) {
 	LINEBLOCK* head = NULL;
 	while(sts != NULL) {
-		head = mergelnblks(head, compilestatement(s, c, sts));
+		head = mergelnblks(head, compilestatement(s, sts));
 		sts = sts->next;
 	}
 	return head;
@@ -258,9 +338,10 @@ LINEBLOCK* compilestatements(SCOPE* s, CLASS* c, STATEMENT* sts) {
 
 LINEBLOCK* compilefunbody(SCOPE* s, CLASS* c, SUBROUTBODY* b) {
 	SCOPE* myscope = mkscope(s);
+	myscope->currclass = c;
 	if(b->vardecs != NULL)
-		addvardecs(s, b->vardecs);
-	LINEBLOCK* head = compilestatements(myscope, c, b->statements);
+		addlocalvars(s, b->vardecs);
+	LINEBLOCK* head = compilestatements(myscope, b->statements);
 	return head;
 }
 
@@ -287,8 +368,11 @@ LINEBLOCK* compilesubroutdec(SCOPE* s, CLASS* c, SUBROUTDEC* sd) {
 	
 	// types: method, function, constructor
 	// must switch all of these
+	SCOPE* myscope = mkscope(s);
+	if(sd->parameters != NULL)
+		addparameters(myscope, sd->parameters);
 	if(sd->subroutclass == function)
-		return compilefundec(s, c, sd);
+		return compilefundec(myscope, c, sd);
 }
 
 LINEBLOCK* compileclass(COMPILER* c, CLASS* class) {
@@ -296,7 +380,7 @@ LINEBLOCK* compileclass(COMPILER* c, CLASS* class) {
 	if(class->vardecs != NULL)
 		addclassvardecs(topscope, class->vardecs);
 	if(class->subroutdecs != NULL)
-		addsubroutdecs(topscope, class->subroutdecs);
+		topscope->subroutines = class->subroutdecs;
 
 	LINEBLOCK* output = NULL;
 	SUBROUTDEC* curr = class->subroutdecs;
@@ -320,7 +404,7 @@ void compile(COMPILER* c) {
 COMPILER* mkcompiler(CLASS* classes) {
 	COMPILER* c = (COMPILER*)malloc(sizeof(COMPILER));
 	c->globalscope = mkscope(NULL);
-	addclasses(c->globalscope, classes);
+	c->globalscope->classes = classes;
 	c->classes = classes;
 	return c;
 }

@@ -13,7 +13,7 @@
 #define mkstrlist(name, array) STRINGARRAY name = { .items = array, .size = strcount(array) }
 
 typedef struct stringlist {
-	const char* content;
+	char* content;
 	struct stringlist* next;
 } STRINGLIST;
 

@@ -60,7 +60,7 @@ CLASS* parseclasses(PARSER* p) {
 
 int parsepossibilities(PARSER* p, STRINGARRAY* poss) {
 	for(int i = 0; i < poss->size; i++)
-		if(!strcmp(p->current->token, poss->items[i]))
+		if(equals(p, poss->items[i]))
 			return i;
 	return -1;
 }
@@ -87,14 +87,9 @@ CLASSVARDEC* parseclassvardec(PARSER* p) {
 
 CLASSVARDEC* parseclassvardecs(PARSER* p) {
 	CLASSVARDEC* head = parseclassvardec(p);
-	if(head != NULL)
-		head->base->index = 0;
-	int index = 1;
 	CLASSVARDEC* curr = head;
 	CLASSVARDEC* nextc;
 	while(nextc = parseclassvardec(p), nextc != NULL) {
-		nextc->base->index = index;
-		index++;
 		curr->next = nextc;
 		curr = nextc;
 	}
@@ -156,6 +151,7 @@ PARAMETER* parseparameter(PARSER* p) {
 	if(equals(p, ")"))
 		return NULL;
 	param->debug = getdebug(p);
+	param->primitive = isprimitive(p->current);
 	param->type = parsetype(p);
 	param->name = parseidentifier(p);
 	return param;
@@ -163,9 +159,6 @@ PARAMETER* parseparameter(PARSER* p) {
 
 PARAMETER* parseparameters(PARSER* p) {
 	PARAMETER* head = parseparameter(p);
-	if(head != NULL)
-		head->index = 0;
-	int index = 1;
 	PARAMETER* curr = head;
 	PARAMETER* nextp;
 	while(equals(p, ",")) {
@@ -173,9 +166,7 @@ PARAMETER* parseparameters(PARSER* p) {
 		nextp = parseparameter(p);
 		if(nextp == NULL)
 			unexpected(p);
-		nextp->index = index;
 		curr->next = nextp;
-		index++;
 		curr = curr->next;
 	}
 	if(curr != NULL)
@@ -199,7 +190,7 @@ bool isprimitive(TOKEN* tk) {
 }
 
 char* parsetype(PARSER* p) {
-	if(p->current->type != identifier)
+	if(p->current->type != identifier && p->current->type != keyword)
 		unexpected(p);
 
 	char* result = p->current->token;
@@ -246,15 +237,10 @@ VARDEC* parsevardec(PARSER* p) {
 
 VARDEC* parsevardecs(PARSER* p) {
 	VARDEC* head = parsevardec(p);
-	if(head != NULL)
-		head->index = 0;
-	int index = 1;
 	VARDEC* curr = head;
 	VARDEC* nextv;
 	while(nextv = parsevardec(p), nextv != NULL) {
-		nextv->index = index;
-		index++;
-		curr->next = nextv;
+			curr->next = nextv;
 		curr = nextv;
 	}
 	if(curr != NULL)
