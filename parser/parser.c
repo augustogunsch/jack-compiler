@@ -5,15 +5,10 @@
 #include "parser.h"
 #include "parser-structure.h"
 
-// Statements
-PARSER* mkparser(TOKEN* tokens, char* file) {
+CLASS* parse(TOKEN* tokens, char* file) {
 	PARSER* parser = (PARSER*)malloc(sizeof(PARSER));
 	parser->tokens = tokens;
 	parser->current = tokens;
 	parser->file = file;
-	return parser;
-}
-
-void parse(PARSER* p) {
-	p->output = parseclasses(p);
+	return parseclass(parser);
 }

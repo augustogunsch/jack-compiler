@@ -391,16 +391,6 @@ LINEBLOCK* compileclass(COMPILER* c, CLASS* class) {
 	return output;
 }
 
-void compile(COMPILER* c) {
-	LINEBLOCK* output = NULL;
-	CLASS* curr = c->classes;
-	while(curr != NULL) {
-		output = mergelnblks(output, compileclass(c, curr));
-		curr = curr->next;
-	}
-	c->output = output;
-}
-
 COMPILER* mkcompiler(CLASS* classes) {
 	COMPILER* c = (COMPILER*)malloc(sizeof(COMPILER));
 	c->globalscope = mkscope(NULL);

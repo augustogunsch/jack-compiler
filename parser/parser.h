@@ -8,9 +8,7 @@ typedef struct {
 	TOKEN* current;
 	TOKEN* checkpoint;
 	char* file;
-	CLASS* output;
 } PARSER;
 
-PARSER* mkparser(TOKEN* tokens, char* file);
-void parse(PARSER* p);
+CLASS* parse(TOKEN* tokens, char* file);
 #endif

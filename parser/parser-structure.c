@@ -43,19 +43,11 @@ CLASS* parseclass(PARSER* p) {
 	class->subroutdecs = parsesubroutdecs(p);
 
 	checkcontent(p, "}");
-	return class;
-}
 
-CLASS* parseclasses(PARSER* p) {
-	CLASS* head = parseclass(p);
-	CLASS* curr = head;
-	while(p->current != NULL && equals(p, "class")) {
-		curr->next = parseclass(p);
-		curr = curr->next;
-	}
-	if(curr != NULL)
-		curr->next = NULL;
-	return head;
+	if(p->current != NULL)
+		unexpected(p);
+
+	return class;
 }
 
 int parsepossibilities(PARSER* p, STRINGARRAY* poss) {

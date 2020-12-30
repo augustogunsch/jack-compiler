@@ -16,6 +16,6 @@ typedef struct token {
 	struct token* next;
 } TOKEN;
 
-TOKEN* tokenize(FILE* input);
+TOKEN* tokenize(char* filename);
 void freetokenlist(TOKEN* list);
 #endif

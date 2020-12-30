@@ -23,7 +23,7 @@ void freestr(STRING* str);
 
 // Token manipulation;
 TOKEN* appendtokenraw(TOKEN* curitem, STRING* token, int definedat, TOKENTYPE type);
-TOKEN* appendtoken(TOKEN* curitem, STRING* token, int definedat);
+TOKEN* appendtoken(TOKEN* curitem, STRING* token, char* file, int definedat);
 #define mktoken() (TOKEN*)malloc(sizeof(TOKEN))
 
 // Char types
@@ -33,7 +33,7 @@ bool issymbol(STRING* tk);
 bool isint(char* str);
 bool isintcons(STRING* tk);
 bool isidentifier(STRING* tk);
-TOKENTYPE gettokentype(STRING* tk, int definedat);
+TOKENTYPE gettokentype(STRING* tk, char* file, int definedat);
 
 // Stream handling
 void skipln(FILE* input);
@@ -78,9 +78,9 @@ TOKEN* appendtokenraw(TOKEN* curitem, STRING* token, int definedat, TOKENTYPE ty
 	return nextitem;
 }
 
-TOKEN* appendtoken(TOKEN* curitem, STRING* token, int definedat) {
+TOKEN* appendtoken(TOKEN* curitem, STRING* token, char* file, int definedat) {
 	append(token, '\0');
-	return appendtokenraw(curitem, token, definedat, gettokentype(token, definedat));
+	return appendtokenraw(curitem, token, definedat, gettokentype(token, file, definedat));
 }
 
 // Char types
@@ -128,12 +128,12 @@ bool isidentifier(STRING* tk) {
 	return true;
 }
 
-TOKENTYPE gettokentype(STRING* tk, int definedat) {
+TOKENTYPE gettokentype(STRING* tk, char* file, int definedat) {
 	if(iskeyword(tk)) return keyword;
 	if(issymbol(tk)) return symbol;
 	if(isintcons(tk)) return integer;
 	if(isidentifier(tk)) return identifier;
-	eprintf("Unexpected token '%s'; line %i\n", tk->str, definedat);
+	eprintf("Unexpected token '%s'; file '%s', line %i\n", tk->str, file, definedat);
 	exit(1);
 }
 
@@ -188,7 +188,7 @@ void readstr(FILE* input, STRING* tmp, int definedat) {
 	append(tmp, '\0');
 }
 
-TOKEN* tokenize(FILE* input) {
+TOKEN* tokenize(char* file) {
 	TOKEN* head = mktoken();
 	TOKEN* lastitem = head;
 	TOKEN* curitem = head;
@@ -198,6 +198,7 @@ TOKEN* tokenize(FILE* input) {
 	CHARTYPE curtype;
 
 	int lnscount = 1;
+	FILE* input = fopen(file, "r");
 	
 	unsigned char c;
 	while(c = fgetc(input), !feof(input)) {
@@ -208,7 +209,7 @@ TOKEN* tokenize(FILE* input) {
 			continue;
 		else if(c == '"') {
 			if(lasttype != space)
-				curitem = appendtoken(curitem, tmptoken, lnscount);
+				curitem = appendtoken(curitem, tmptoken, file, lnscount);
 			readstr(input, tmptoken, lnscount);
 			lastitem = curitem;
 			curitem = appendtokenraw(curitem, tmptoken, lnscount, string);
@@ -221,13 +222,13 @@ TOKEN* tokenize(FILE* input) {
 		if(curtype == common) {
 			if(lasttype == charsymbol) {
 				lastitem = curitem;
-				curitem = appendtoken(curitem, tmptoken, lnscount);
+				curitem = appendtoken(curitem, tmptoken, file, lnscount);
 			}
 			append(tmptoken, c);
 		} else {
 			if(lasttype != space){
 				lastitem = curitem;
-				curitem = appendtoken(curitem, tmptoken, lnscount);
+				curitem = appendtoken(curitem, tmptoken, file, lnscount);
 			}
 			if(curtype == charsymbol)
 				append(tmptoken, c);

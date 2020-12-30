@@ -7,10 +7,8 @@
 typedef struct {
 	CLASS* classes;
 	SCOPE* globalscope;
-	LINEBLOCK* output;
 } COMPILER;
 
 COMPILER* mkcompiler(CLASS* classes);
-void compile(COMPILER* c);
-
+LINEBLOCK* compileclass(COMPILER* c, CLASS* class);
 #endif
