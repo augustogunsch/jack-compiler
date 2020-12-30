@@ -125,8 +125,8 @@ SUBROUTDEC* getmethod(SCOPE* s, VAR* parent, SUBROUTCALL* call) {
 	SUBROUTDEC* d = getsubroutdecfromlist(c->subroutdecs, call->name);
 	if(d == NULL)
 		notdeclared(call->name, call->debug);
-	if(d->subroutclass == function) {
-		eprintf("Calling a function as if it were a method; file '%s', line %i\n", call->debug->file, call->debug->definedat);
+	if(d->subroutclass != method) {
+		eprintf("Calling a function/constructor as if it were a method; file '%s', line %i\n", call->debug->file, call->debug->definedat);
 		exit(1);
 	}
 	return d;

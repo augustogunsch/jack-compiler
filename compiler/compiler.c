@@ -132,9 +132,15 @@ LINEBLOCK* pushtrue() {
 	return blk;
 }
 
+LINEBLOCK* pushthis() {
+	char* pushthis[] = { "push", "pointer", "0" };
+	return mklnblk(mksimpleln(pushthis, strcount(pushthis)));
+}
+
 LINEBLOCK* compilekeywordconst(SCOPE* s, TERM* t) {
 	if(!strcmp(t->string, "true")) return pushtrue();
 	if(!strcmp(t->string, "false")) return pushfalse();
+	if(!strcmp(t->string, "this")) return pushthis();
 	eprintf("Unsupported keyword '%s'\n", t->string);
 	exit(1);
 }
@@ -195,9 +201,14 @@ LINEBLOCK* compilecallln(SCOPE* s, SUBROUTCALL* call) {
 
 // temporary ignore list for OS functions
 char* ignoresubroutdecs[] = {
-	"printInt", "void", "peek", "int", "poke", "void"
+	"printInt", "void", "peek", "int", "poke", "void", "deAlloc", "void", "setColor", "void", "drawRectangle", "void",
+	"wait", "void", "keyPressed", "char"
 };
 int ignorecount = sizeof(ignoresubroutdecs) / sizeof(char*);
+
+SUBROUTCLASS ignoreclasses[] = {
+	function, function, function, function, function, function, function, function
+};
 
 LINEBLOCK* compilesubroutcall(SCOPE* s, SUBROUTCALL* call) {
 	LINEBLOCK* blk = compilecallln(s, call);
@@ -209,15 +220,27 @@ LINEBLOCK* compilesubroutcall(SCOPE* s, SUBROUTCALL* call) {
 	// therefore must be thrown away
 
 	// gambiarra
+	SUBROUTCLASS class;
 	char* type = NULL;
 	for(int i = 0; i < ignorecount; i += 2) {
 		if(!strcmp(call->name, ignoresubroutdecs[i])) {
 			type = ignoresubroutdecs[i+1];
+			class = ignoreclasses[i];
 			break;
 		}
 	}
-	if(type == NULL)
-		type = getsubroutdecfromcall(s, call)->type;
+	if(type == NULL) {
+		SUBROUTDEC* dec = getsubroutdecfromcall(s, call);
+		type = dec->type;
+		class = dec->subroutclass;
+	}
+	if(class == method) {
+		// could be more efficient since getsubroutdecfromcall() gets the parent already
+		if(call->parentname == NULL)
+			blk = mergelnblks(pushthis(), blk);
+		else
+			blk = mergelnblks(pushvar(s, call->parentname), blk);
+	}
 	if(!strcmp(type, "void")) {
 		char* tokens[] = { "pop", "temp", "0" };
 		appendln(blk, mksimpleln(tokens, sizeof(tokens) / sizeof(char*)));
@@ -345,12 +368,17 @@ LINEBLOCK* compilefunbody(SCOPE* s, CLASS* c, SUBROUTBODY* b) {
 	return head;
 }
 
-LINEBLOCK* compilefundec(SCOPE* s, CLASS* c, SUBROUTDEC* f) {
-	LINE* label = mkline(3);
-	addtoken(label, ezheapstr("function"));
-	addtoken(label, dotlabel(c->name, f->name));
-	addtoken(label, itoa(countlocalvars(f->body->vardecs)));
+LINE* mksubdeclabel(CLASS* c, SUBROUTDEC* sd) {
+	char* labelstrs[] = { "function", dotlabel(c->name, sd->name), itoa(countlocalvars(sd->body->vardecs)) };
+	LINE* label = mksimpleln(labelstrs, strcount(labelstrs));
+	free(labelstrs[1]);
+	free(labelstrs[2]);
 	label->next = NULL;
+	return label;
+}
+
+LINEBLOCK* compilefundec(SCOPE* s, CLASS* c, SUBROUTDEC* f) {
+	LINE* label = mksubdeclabel(c, f);
 
 	if(f->body->statements != NULL) {
 		LINEBLOCK* body = compilefunbody(s, c, f->body);
@@ -359,6 +387,59 @@ LINEBLOCK* compilefundec(SCOPE* s, CLASS* c, SUBROUTDEC* f) {
 	}
 	else
 		return mklnblk(label);
+}
+
+int countstrs(STRINGLIST* ls) {
+	int count = 0;
+	while(ls != NULL) {
+		count++;
+		ls = ls->next;
+	}
+	return count;
+}
+
+int getobjsize(CLASS* c) {
+	CLASSVARDEC* curr = c->vardecs;
+	int count = 0;
+	while(curr != NULL) {
+		if(curr->type == field)
+			count += countstrs(curr->base->names);
+		curr = curr->next;
+	}
+	return count;
+}
+
+LINEBLOCK* compileconstructor(SCOPE* s, CLASS* c, SUBROUTDEC* con) {
+	LINE* label = mksubdeclabel(c, con);
+	LINEBLOCK* blk = mklnblk(label);
+
+	char* size[] = { "push", itoa(getobjsize(c)) };
+	char* memalloc[] = { "call", "Memory.alloc", "1" };
+	char* poppointer[] = { "pop", "pointer", "0" };
+	appendln(blk, mksimpleln(size, strcount(size)));
+	appendln(blk, mksimpleln(memalloc, strcount(memalloc)));
+	appendln(blk, mksimpleln(poppointer, strcount(poppointer)));
+	free(size[1]);
+
+	if(con->body != NULL)
+		return mergelnblks(blk, compilefunbody(s, c, con->body));
+	else
+		return blk;
+}
+
+LINEBLOCK* compilemethod(SCOPE* s, CLASS* c, SUBROUTDEC* m) {
+	LINE* label = mksubdeclabel(c, m);
+	LINEBLOCK* blk = mklnblk(label);
+
+	char* pusharg0[] = { "push", "argument" "0" };
+	char* poppointer[] = { "pop", "pointer", "0" };
+	appendln(blk, mksimpleln(pusharg0, strcount(pusharg0)));
+	appendln(blk, mksimpleln(poppointer, strcount(poppointer)));
+
+	if(m->body != NULL) 
+		return mergelnblks(blk, compilefunbody(s, c, m->body));
+	else
+		return blk;
 }
 
 LINEBLOCK* compilesubroutdec(SCOPE* s, CLASS* c, SUBROUTDEC* sd) {
@@ -373,6 +454,9 @@ LINEBLOCK* compilesubroutdec(SCOPE* s, CLASS* c, SUBROUTDEC* sd) {
 		addparameters(myscope, sd->parameters);
 	if(sd->subroutclass == function)
 		return compilefundec(myscope, c, sd);
+	if(sd->subroutclass == constructor)
+		return compileconstructor(myscope, c, sd);
+	return compilemethod(myscope, c, sd);
 }
 
 LINEBLOCK* compileclass(COMPILER* c, CLASS* class) {
