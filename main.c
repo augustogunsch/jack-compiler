@@ -58,7 +58,7 @@ void actonunits(COMPILEUNIT* units, void*(*fun)(void*)) {
 	do {
 		i = 0;
 		while(curr != NULL && i < _SC_THREAD_THREADS_MAX) {
-			code = pthread_create(&mythreads[i], NULL, fun, curr);
+			code = pthread_create(&mythreads[i], &attr, fun, curr);
 
 			if(code) {
 				eprintf("Error while creating thread %i: %s\n", i, strerror(code));
