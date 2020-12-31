@@ -152,6 +152,41 @@ LINEBLOCK* compilekeywordconst(SCOPE* s, TERM* t) {
 	exit(1);
 }
 
+char* toascii(char c) {
+	char* result = (char*)malloc(sizeof(char) * (countplaces(c) + 1));
+	sprintf(result, "%i", c);
+	return result;
+}
+
+LINEBLOCK* compilestrconst(char* str) {
+	if(str[0] == '\0')
+		return NULL;
+
+	char* pushchar[] = { "push", "constant", "" };
+	pushchar[2] = toascii(str[0]);
+	LINEBLOCK* blk = mklnblk(mksimpleln(pushchar, strcount(pushchar)));
+	free(pushchar[2]);
+
+	char* appendchar[] = { "call", "String.appendChar", "2" };
+	appendln(blk, mksimpleln(appendchar, strcount(appendchar)));
+
+	int i = 1;
+	char c;
+	while(c = str[i], c != '\0') {
+		pushchar[2] = toascii(c);
+		appendln(blk, mksimpleln(pushchar, strcount(pushchar)));
+		free(pushchar[2]);
+		appendln(blk, mksimpleln(appendchar, strcount(appendchar)));
+		i++;
+	}
+
+	char* strsize[] = { "push", "constant", itoa(i) };
+	char* mknew[] = { "call", "String.new", "1" };
+	appendlnbefore(blk, mksimpleln(mknew, strcount(mknew)));
+	appendlnbefore(blk, mksimpleln(strsize, strcount(strsize)));
+	free(strsize[2]);
+}
+
 LINEBLOCK* compileterm(SCOPE* s, TERM* t) {
 	if(t->type == intconstant) return pushconstant(t->integer);
 	if(t->type == unaryopterm) return pushunaryopterm(s, t);
@@ -159,10 +194,7 @@ LINEBLOCK* compileterm(SCOPE* s, TERM* t) {
 	if(t->type == varname) return pushvar(s, t->string);
 	if(t->type == subroutcall) return compilesubroutcall(s, t->call);
 	if(t->type == keywordconstant) return compilekeywordconst(s, t);
-	else {
-		eprintf("Unsupported term yet %i\n", t->type);
-		exit(1);
-	}
+	if(t->type == stringconstant) return compilestrconst(t->string);
 }
 
 LINEBLOCK* compileexpression(SCOPE* s, TERM* e) {
