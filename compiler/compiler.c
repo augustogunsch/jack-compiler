@@ -85,15 +85,13 @@ LINE* mathopln(char op) {
 		char* tokens[] = { "call", "Math.divide", "2" };
 		return mksimpleln(tokens, strcount(tokens));
 	}
-	if(op == '*') {
-		char* tokens[] = { "call", "Math.multiply", "2" };
-		return mksimpleln(tokens, strcount(tokens));
-	}
+	char* tokens[] = { "call", "Math.multiply", "2" };
+	return mksimpleln(tokens, strcount(tokens));
 }
 
-LINEBLOCK* pushconstant(int n) {
+LINE* pushconstant(int n) {
 	char* tokens[] = { "push", "constant", itoa(n) };
-	return mklnblk(mksimpleln(tokens, strcount(tokens)));
+	return mksimpleln(tokens, strcount(tokens));
 }
 
 LINEBLOCK* pushunaryopterm(SCOPE* s, TERM* t) {
@@ -107,47 +105,77 @@ LINEBLOCK* pushunaryopterm(SCOPE* s, TERM* t) {
 	return blk;
 }
 
-LINEBLOCK* opvarraw(SCOPE* s, char* op, VAR* v) {
+LINE* opvarraw(SCOPE* s, char* op, VAR* v) {
 	char* tokens[] = { op, v->memsegment, itoa(v->index) };
-	return mklnblk(mksimpleln(tokens, strcount(tokens)));
+	return mksimpleln(tokens, strcount(tokens));
 }
 
-LINEBLOCK* opvar(SCOPE* s, char* op, const char* name) {
+LINE* opvar(SCOPE* s, char* op, const char* name) {
 	VAR* v = getvar(s, name);
 	return opvarraw(s, op, v);
 }
 
-LINEBLOCK* pushvarraw(SCOPE*s, VAR* v) {
+LINE* pushvarraw(SCOPE*s, VAR* v) {
 	return opvarraw(s, "push", v);
 }
 
-LINEBLOCK* pushvar(SCOPE* s, const char* name) {
+LINE* pushvar(SCOPE* s, const char* name) {
 	return opvar(s, "push", name);
 }
 
-LINEBLOCK* popvar(SCOPE* s, const char* name) {
+LINE* popvar(SCOPE* s, const char* name) {
 	return opvar(s, "pop", name);
 }
 
-LINEBLOCK* pushfalse() {
+LINE* pushfalse() {
 	return pushconstant(0);
 }
 
 LINEBLOCK* pushtrue() {
-	LINEBLOCK* blk = pushfalse();
+	LINEBLOCK* blk = mklnblk(pushfalse());
 	appendln(blk, onetoken("not"));
 	return blk;
 }
 
-LINEBLOCK* pushthis() {
-	char* pushthis[] = { "push", "pointer", "0" };
-	return mklnblk(mksimpleln(pushthis, strcount(pushthis)));
+LINE* pushthisadd() {
+	char* pushthisadd[] = { "push", "pointer", "0" };
+	return mksimpleln(pushthisadd, strcount(pushthisadd));
+}
+
+LINE* popthatadd() {
+	char* popthatadd[] = { "pop", "pointer", "1" };
+	return mksimpleln(popthatadd, strcount(popthatadd));
+}
+
+LINE* pushthatadd() {
+	char* pushthatadd[] = { "push", "pointer", "1" };
+	return mksimpleln(pushthatadd, strcount(pushthatadd));
+}
+
+LINE* popthat() {
+	char* popthat[] = { "pop", "that", "0" };
+	return mksimpleln(popthat, strcount(popthat));
+}
+
+LINE* pushthat() {
+	char* pushthat[] = { "push", "that", "0" };
+	return mksimpleln(pushthat, strcount(pushthat));
+}
+
+LINE* pushtemp() {
+	char* pushtemp[] = { "push", "temp", "0" };
+	return mksimpleln(pushtemp, strcount(pushtemp));
+}
+
+LINE* poptemp() {
+	char* poptemp[] = { "pop", "temp", "0" };
+	return mksimpleln(poptemp, strcount(poptemp));
 }
 
 LINEBLOCK* compilekeywordconst(SCOPE* s, TERM* t) {
 	if(!strcmp(t->string, "true")) return pushtrue();
-	if(!strcmp(t->string, "false")) return pushfalse();
-	if(!strcmp(t->string, "this")) return pushthis();
+	if(!strcmp(t->string, "false")) return mklnblk(pushfalse());
+	if(!strcmp(t->string, "this")) return mklnblk(pushthisadd());
 	eprintf("Unsupported keyword '%s'\n", t->string);
 	exit(1);
 }
@@ -185,16 +213,31 @@ LINEBLOCK* compilestrconst(char* str) {
 	appendlnbefore(blk, mksimpleln(mknew, strcount(mknew)));
 	appendlnbefore(blk, mksimpleln(strsize, strcount(strsize)));
 	free(strsize[2]);
+
+	return blk;
+}
+
+LINEBLOCK* compilearrayitem(SCOPE* s, TERM* t) {
+	LINEBLOCK* blk = compileexpression(s, t->array->exp);
+	appendln(blk, pushvar(s, t->array->name));
+
+	appendln(blk, onetoken("add"));
+
+	appendln(blk, popthatadd());
+	appendln(blk, pushthat());
+
+	return blk;
 }
 
 LINEBLOCK* compileterm(SCOPE* s, TERM* t) {
-	if(t->type == intconstant) return pushconstant(t->integer);
+	if(t->type == intconstant) return mklnblk(pushconstant(t->integer));
 	if(t->type == unaryopterm) return pushunaryopterm(s, t);
 	if(t->type == innerexpression) return compileexpression(s, t->expression);
-	if(t->type == varname) return pushvar(s, t->string);
+	if(t->type == varname) return mklnblk(pushvar(s, t->string));
 	if(t->type == subroutcall) return compilesubroutcall(s, t->call);
 	if(t->type == keywordconstant) return compilekeywordconst(s, t);
 	if(t->type == stringconstant) return compilestrconst(t->string);
+	return compilearrayitem(s, t);
 }
 
 LINEBLOCK* compileexpression(SCOPE* s, TERM* e) {
@@ -248,16 +291,15 @@ LINEBLOCK* compilesubroutcall(SCOPE* s, SUBROUTCALL* call) {
 
 	if(d->subroutclass == method) {
 		if(call->parentname == NULL)
-			blk = mergelnblks(pushthis(), blk);
+			appendlnbefore(blk, pushthisadd());
 		else
-			blk = mergelnblks(pushvarraw(s, v), blk);
+			appendlnbefore(blk, pushvarraw(s, v));
 	}
 
 	// void functions always return 0
 	// therefore must be thrown away
 	if(!strcmp(d->type, "void")) {
-		char* tokens[] = { "pop", "temp", "0" };
-		appendln(blk, mksimpleln(tokens, sizeof(tokens) / sizeof(char*)));
+		appendln(blk, poptemp());
 	}
 
 	return blk;
@@ -316,7 +358,6 @@ LINEBLOCK* compileif(COMPILER* c, SCOPE* s, IFSTATEMENT* st) {
 		appendln(blk, mksimpleln(endlabelln, strcount(endlabelln)));
 	}
 
-
 	return blk;
 }
 
@@ -351,9 +392,20 @@ LINEBLOCK* compilewhile(COMPILER* c, SCOPE* s, CONDSTATEMENT* w) {
 }
 
 LINEBLOCK* compilelet(SCOPE* s, LETSTATEMENT* l) {
-	// missing array ind
 	LINEBLOCK* blk = compileexpression(s, l->expression);
-	blk = mergelnblks(blk, popvar(s, l->varname));
+
+	if(l->arrayind != NULL) {
+		appendlnbefore(blk, onetoken("add"));
+		appendlnbefore(blk, pushvar(s, l->varname));
+		blk = mergelnblks(compileexpression(s, l->arrayind), blk);
+
+		appendln(blk, poptemp());
+		appendln(blk, popthatadd());
+		appendln(blk, pushtemp());
+		appendln(blk, popthat());
+	}
+	else
+		appendln(blk, popvar(s, l->varname));
 	return blk;
 }
 

@@ -135,6 +135,6 @@ int main(int argc, char* argv[]) {
 		currunit = currunit->next;
 	}
 
-	freeos();
+	//freeos();
 	return 0;
 }

@@ -99,10 +99,11 @@ TERM* parsecalltermnullified(PARSER* p) {
 
 TERM* parsearrayterm(PARSER* p) {
 	TERM* t = mkterm(arrayitem);
-	t->string = p->current->token;
+	t->array = (ARRAY*)malloc(sizeof(ARRAY));
+	t->array->name = p->current->token;
 	next(p);
 	checkcontent(p, "[");
-	t->arrayexp = parseexpression(p);
+	t->array->exp = parseexpression(p);
 	checkcontent(p, "]");
 	return t;
 }

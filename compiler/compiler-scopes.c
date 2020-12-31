@@ -26,11 +26,11 @@ SUBROUTDEC* getsubroutdec(SCOPE* s, const char* name);
 // Scope adding
 VAR* mkvar(char* type, char* name, bool primitive, DEBUGINFO* debug, MEMSEGMENT seg, int i);
 void addvar(SCOPE* s, VAR** dest, VAR* v);
-void addlocalvar(SCOPE* s, VARDEC* v, int i);
+void addlocalvar(SCOPE* s, VARDEC* v, int* i);
 void addstaticvar(COMPILER* c, SCOPE* s, CLASSVARDEC* v);
-void addfield(SCOPE* s, CLASSVARDEC* v, int i);
+void addfield(SCOPE* s, CLASSVARDEC* v, int* i);
 void addclassvardec(COMPILER* c, SCOPE* s, CLASSVARDEC* v, int* i);
-void addparameter(SCOPE* s, PARAMETER* p, int i);
+void addparameter(SCOPE* s, PARAMETER* p, int* i);
 
 // Error messages
 void doubledeclaration(const char* name, DEBUGINFO* d1, DEBUGINFO* d2) {
@@ -223,32 +223,33 @@ void addvar(SCOPE* s, VAR** dest, VAR* v) {
 	*dest = v;
 }
 
-void addlocalvar(SCOPE* s, VARDEC* v, int i) {
+void addlocalvar(SCOPE* s, VARDEC* v, int* i) {
 	STRINGLIST* currname = v->names;
 	while(currname != NULL) {
-		addvar(s, &(s->localvars), mkvar(v->type, currname->content, v->primitive, v->debug, local, i));
+		addvar(s, &(s->localvars), mkvar(v->type, currname->content, v->primitive, v->debug, local, *i));
 		currname = currname->next;
+		(*i)++;
 	}
 }
 
 void addstaticvar(COMPILER* c, SCOPE* s, CLASSVARDEC* v) {
-	pthread_mutex_lock(&(c->staticmutex));
-	static int count = 0;
-	int i = count;
-	count++;
-	pthread_mutex_unlock(&(c->staticmutex));
 	STRINGLIST* currname = v->base->names;
+	pthread_mutex_lock(&(c->staticmutex));
+	static int i = 0;
 	while(currname != NULL) {
 		addvar(s, &(s->staticvars), mkvar(v->base->type, currname->content, v->base->primitive, v->base->debug, staticseg, i));
 		currname = currname->next;
+		i++;
 	}
+	pthread_mutex_unlock(&(c->staticmutex));
 }
 
-void addfield(SCOPE* s, CLASSVARDEC* v, int i) {
+void addfield(SCOPE* s, CLASSVARDEC* v, int* i) {
 	STRINGLIST* currname = v->base->names;
 	while(currname != NULL) {
-		addvar(s, &(s->fields), mkvar(v->base->type, currname->content, v->base->primitive, v->base->debug, fieldseg, i));
+		addvar(s, &(s->fields), mkvar(v->base->type, currname->content, v->base->primitive, v->base->debug, fieldseg, *i));
 		currname = currname->next;
+		(*i)++;
 	}
 }
 
@@ -256,13 +257,13 @@ void addclassvardec(COMPILER* c, SCOPE* s, CLASSVARDEC* v, int* i) {
 	if(v->type == stat)
 		addstaticvar(c, s, v);
 	else {
-		addfield(s, v, *i);
-		*i++;
+		addfield(s, v, i);
 	}
 }
 
-void addparameter(SCOPE* s, PARAMETER* p, int i) {
-	addvar(s, &(s->parameters), mkvar(p->type, p->name, p->primitive, p->debug, arg, i));
+void addparameter(SCOPE* s, PARAMETER* p, int* i) {
+	addvar(s, &(s->parameters), mkvar(p->type, p->name, p->primitive, p->debug, arg, *i));
+	(*i)++;
 }
 
 // Group adding
@@ -277,8 +278,7 @@ void addclassvardecs(COMPILER* c, SCOPE* s, CLASSVARDEC* classvardecs) {
 void addlocalvars(SCOPE* s, VARDEC* localvars) {
 	int i = 0;
 	while(localvars != NULL) {
-		addlocalvar(s, localvars, i);
-		i++;
+		addlocalvar(s, localvars, &i);
 		localvars = localvars->next;
 	}
 }
@@ -286,8 +286,7 @@ void addlocalvars(SCOPE* s, VARDEC* localvars) {
 void addparameters(SCOPE* s, PARAMETER* params) {
 	int i = 0;
 	while(params != NULL) {
-		addparameter(s, params, i);
-		i++;
+		addparameter(s, params, &i);
 		params = params->next;
 	}
 }

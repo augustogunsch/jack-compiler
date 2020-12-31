@@ -78,11 +78,12 @@ bool isdotjack(char* f, int len) {
 bool isdir(char* f, int len) {
 	bool readsmt = false;
 	for(int i = len-1; i >= 0; i--) {
-		if(f[i] == '.')
+		if(f[i] == '.') {
 			if(readsmt)
 				return false;
 			else
 				continue;
+		}
 		if(f[i] == '/')
 			return 1;
 		readsmt = true;

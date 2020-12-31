@@ -14,7 +14,7 @@ CLASS* addclass(const char* name) {
 	return c;
 }
 
-CLASS* adddec(CLASS* c, SUBROUTCLASS subroutclass, char* type, const char* name) {
+void adddec(CLASS* c, SUBROUTCLASS subroutclass, char* type, const char* name) {
 	SUBROUTDEC* dec = (SUBROUTDEC*)malloc(sizeof(SUBROUTDEC));
 	dec->class = c;
 	dec->subroutclass = subroutclass;
@@ -151,5 +151,5 @@ SUBROUTDEC* getossubroutdec(SUBROUTCALL* call) {
 	CLASS* c = getosclass(call->parentname);
 	if(c == NULL)
 		return NULL;
-	getsubroutdecinclass(c, call->name);
+	return getsubroutdecinclass(c, call->name);
 }

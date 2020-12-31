@@ -120,6 +120,11 @@ typedef enum {
 	varname, intconstant, stringconstant, keywordconstant, arrayitem, subroutcall, innerexpression, unaryopterm
 } TERMTYPE;
 
+typedef struct {
+	char* name;
+	struct term* exp;
+} ARRAY;
+
 typedef struct term {
 	TERMTYPE type;
 	union {
@@ -127,8 +132,8 @@ typedef struct term {
 		int integer;
 		struct subroutcall* call;
 		struct term* expression;
+		ARRAY* array;
 	};
-	struct term* arrayexp;
 	char op;
 	char unaryop;
 	struct term* next;
