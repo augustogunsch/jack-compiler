@@ -1,7 +1,6 @@
 #include <stdlib.h>
-#include "parser-internal.h"
+#include "parser-util.h"
 #include "util.h"
-
 
 const char* tokentypesarr[] = { "keyword", "identifier", "symbol",
       			 	"integerConstant", "stringConstant" };

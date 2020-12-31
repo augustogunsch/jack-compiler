@@ -4,7 +4,10 @@
 #include "tokenizer.h"
 #include "util.h"
 
-// Forward declarations
+/* parser-tree
+ * Type definitions for the parsing tree. */
+
+/* BEGIN FORWARD DECLARATIONS */
 struct classvardec;
 struct parameter;
 struct subroutbody;
@@ -16,6 +19,7 @@ struct condstatement;
 struct subroutcall;
 struct term;
 struct expressionlist;
+/* END FORWARD DECLARATIONS */
 
 // Misc
 typedef struct {

@@ -1,8 +1,19 @@
 #include <stdlib.h>
 #include "util.h"
-#include "parser-internal.h"
+#include "parser-util.h"
 #include "parser-expressions.h"
 
+	const char* keywordsarr[] = { "true", "false", "null", "this" };
+	const char* opsarr[] = { "+", "-", "*", "/", "&", "|", "<", ">", "=" };
+	mkstrlist(keywordconstants, keywordsarr);
+mkstrlist(operators, opsarr);
+
+/* BEGIN FORWARD DECLARATIONS */
+
+// Miscelaneous
+bool isop(TOKEN* t);
+
+// Parsing methods
 TERM* parsetermnullified(PARSER* p);
 TERM* parseterm(PARSER* p);
 TERM* mkterm(TERMTYPE type);
@@ -15,15 +26,20 @@ TERM* parsecalltermnullified(PARSER* p);
 TERM* parsearrayterm(PARSER* p);
 TERM* parsevarterm(PARSER* p);
 TERM* parseidentifierterm(PARSER* p);
-bool isop(TOKEN* t);
 SUBROUTCALL* nullsubroutcall(PARSER* p, SUBROUTCALL* c);
 SUBROUTCALL* parsesubroutcallnullified(PARSER* p);
 
-const char* keywordsarr[] = { "true", "false", "null", "this" };
-const char* opsarr[] = { "+", "-", "*", "/", "&", "|", "<", ">", "=" };
-mkstrlist(keywordconstants, keywordsarr);
-mkstrlist(operators, opsarr);
+/* END FORWARD DECLARATIONS */
 
+// Miscelaneous
+bool isop(TOKEN* t) {
+	for(int i = 0; i < operators.size; i++)
+		if(!strcmp(t->token, operators.items[i]))
+			return true;
+	return false;
+}
+
+// Parsing methods
 TERM* parsetermnullified(PARSER* p) {
 	TOKENTYPE type = p->current->type;
 	if(type == integer) return parseint(p);
@@ -124,13 +140,6 @@ TERM* parseidentifierterm(PARSER* p) {
 			return parsevarterm(p);
 	else
 		return t;
-}
-
-bool isop(TOKEN* t) {
-	for(int i = 0; i < operators.size; i++)
-		if(!strcmp(t->token, operators.items[i]))
-			return true;
-	return false;
 }
 
 TERM* parseexpressionnullified(PARSER* p) {

@@ -3,6 +3,10 @@
 #include "tokenizer.h"
 #include "parser-tree.h"
 
+/* parser
+ * This is the file that should be included in other modules
+ * that want to parse a file. */
+
 typedef struct {
 	TOKEN* tokens;
 	TOKEN* current;

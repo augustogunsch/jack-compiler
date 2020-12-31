@@ -1,9 +1,13 @@
 #include <stdlib.h>
 #include "parser-expressions.h"
-#include "parser-internal.h"
+#include "parser-util.h"
 #include "parser-statements.h"
 
+/* BEGIN FORWARD DECLARATIONS */
+
+// Miscelaneous
 STATEMENT* mkstatement(PARSER* p, STATEMENTTYPE t);
+
 STATEMENT* parsestatementnullified(PARSER* p);
 STATEMENT* parselet(PARSER* p);
 CONDSTATEMENT* parsecond(PARSER* p);
@@ -12,12 +16,17 @@ STATEMENT* parsewhile(PARSER* p);
 STATEMENT* parsedo(PARSER* p);
 STATEMENT* parsereturn(PARSER* p);
 
+/* END FORWARD DECLARATIONS */
+
+// Miscelaneous
 STATEMENT* mkstatement(PARSER* p, STATEMENTTYPE t) {
 	STATEMENT* s = (STATEMENT*)malloc(sizeof(STATEMENT));
 	s->type = t;
 	s->debug = getdebug(p);
 	return s;
 }
+
+// Parsing methods
 
 // Though nullified, will throw errors if the parsing fails while on-going
 STATEMENT* parsestatementnullified(PARSER* p) {

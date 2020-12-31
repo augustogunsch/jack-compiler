@@ -5,7 +5,7 @@
 #include "compiler.h"
 
 /* compiler-util
- * Random utilities for the compiler. */
+ * Random utilities used in the compiler module. */
 
 #define mkln(id) mksimpleln(id, strcount(id))
 

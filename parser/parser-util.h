@@ -3,6 +3,9 @@
 #include <string.h>
 #include "parser.h"
 
+/* parser-util
+ * Random utilities used in the parser module. */
+
 #define next(parser) parser->current = p->current->next
 #define anchorparser(parser) p->checkpoint = p->current
 #define rewindparser(parser) p->current = p->checkpoint

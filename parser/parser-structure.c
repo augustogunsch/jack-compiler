@@ -1,10 +1,24 @@
 #include <stdlib.h>
-#include "parser-internal.h"
+#include "parser-util.h"
 #include "parser-structure.h"
 #include "parser-statements.h"
 
-CLASS* parseclass(PARSER* p);
+const char* classvartypesarr[] = { "static", "field" };
+const char* vartypesarr[] = { "int", "char", "boolean" };
+const char* subroutclassesarr[] = { "constructor", "function", "method" };
+mkstrlist(classvartypes, classvartypesarr);
+mkstrlist(vartypes, vartypesarr);
+mkstrlist(subroutclasses, subroutclassesarr);
+
+/* BEGIN FORWARD DECLARATIONS */
+
+// Miscelaneous
+bool isprimitive(TOKEN* tk);
+char* parsetype(PARSER* p);
 int parsepossibilities(PARSER* p, STRINGARRAY* poss);
+
+// Parsing methods
+CLASS* parseclass(PARSER* p);
 CLASSVARTYPE parseclassvartype(PARSER* p);
 CLASSVARDEC* parseclassvardec(PARSER* p);
 CLASSVARDEC* parseclassvardecs(PARSER* p);
@@ -14,19 +28,38 @@ SUBROUTDEC* parsesubroutdecs(PARSER* p, CLASS* c);
 PARAMETER* parseparameter(PARSER* p);
 PARAMETER* parseparameters(PARSER* p);
 SUBROUTBODY* parsesubroutbody(PARSER* p);
-bool isprimitive(TOKEN* tk);
-char* parsetype(PARSER* p);
 void parsevardeccommon(PARSER* p, VARDEC* v);
 VARDEC* parsevardec(PARSER* p);
 VARDEC* parsevardecs(PARSER* p);
 
-const char* classvartypesarr[] = { "static", "field" };
-const char* vartypesarr[] = { "int", "char", "boolean" };
-const char* subroutclassesarr[] = { "constructor", "function", "method" };
-mkstrlist(classvartypes, classvartypesarr);
-mkstrlist(vartypes, vartypesarr);
-mkstrlist(subroutclasses, subroutclassesarr);
+/* END FORWARD DECLARATIONS */
 
+
+// Miscelaneous
+bool isprimitive(TOKEN* tk) {
+	if(tk->type == keyword)
+		if(existsinarray(&vartypes, tk->token))
+			return true;
+	return false;
+}
+
+char* parsetype(PARSER* p) {
+	if(p->current->type != identifier && p->current->type != keyword)
+		unexpected(p);
+
+	char* result = p->current->token;
+	next(p);
+	return result;
+}
+
+int parsepossibilities(PARSER* p, STRINGARRAY* poss) {
+	for(int i = 0; i < poss->size; i++)
+		if(equals(p, poss->items[i]))
+			return i;
+	return -1;
+}
+
+// Parsing methods
 CLASS* parseclass(PARSER* p) {
 	checkcontent(p, "class");
 
@@ -48,13 +81,6 @@ CLASS* parseclass(PARSER* p) {
 		unexpected(p);
 
 	return class;
-}
-
-int parsepossibilities(PARSER* p, STRINGARRAY* poss) {
-	for(int i = 0; i < poss->size; i++)
-		if(equals(p, poss->items[i]))
-			return i;
-	return -1;
 }
 
 CLASSVARTYPE parseclassvartype(PARSER* p) {
@@ -174,22 +200,6 @@ SUBROUTBODY* parsesubroutbody(PARSER* p) {
 	subroutbody->statements = parsestatements(p);
 
 	return subroutbody;
-}
-
-bool isprimitive(TOKEN* tk) {
-	if(tk->type == keyword)
-		if(existsinarray(&vartypes, tk->token))
-			return true;
-	return false;
-}
-
-char* parsetype(PARSER* p) {
-	if(p->current->type != identifier && p->current->type != keyword)
-		unexpected(p);
-
-	char* result = p->current->token;
-	next(p);
-	return result;
 }
 
 void parsevardeccommon(PARSER* p, VARDEC* v) {
