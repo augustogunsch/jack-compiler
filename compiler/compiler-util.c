@@ -1,8 +1,11 @@
+#include <stdlib.h>
 #include "compiler-util.h"
 
 LINE* opvarraw(SCOPE* s, char* op, VAR* v) {
 	char* tokens[] = { op, v->memsegment, itoa(v->index) };
-	return mksimpleln(tokens, strcount(tokens));
+	LINE* ln = mksimpleln(tokens, strcount(tokens));
+	free(tokens[2]);
+	return ln;
 }
 
 LINE* opvar(SCOPE* s, char* op, const char* name) {

@@ -50,7 +50,9 @@ LINE* mathopln(char op) {
 
 LINE* pushconstant(int n) {
 	char* tokens[] = { "push", "constant", itoa(n) };
-	return mkln(tokens);
+	LINE* ln = mkln(tokens);
+	free(tokens[2]);
+	return ln;
 }
 
 LINE* pushthat() {

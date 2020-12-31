@@ -92,7 +92,11 @@ LINEBLOCK* compileif(COMPILER* c, SCOPE* s, IFSTATEMENT* st) {
 		blk = mergelnblks(blk, compilestatements(c, s, st->elsestatements));
 		char* endlabelln[] = { "label", endlabel };
 		appendln(blk, mkln(endlabelln));
+		free(endlabel);
 	}
+
+	free(falselabel);
+	free(truelabel);
 
 	return blk;
 }
@@ -123,6 +127,9 @@ LINEBLOCK* compilewhile(COMPILER* c, SCOPE* s, CONDSTATEMENT* w) {
 
 	char* endlabelln[] = { "label", endlabel };
 	appendln(blk, mkln(endlabelln));
+
+	free(explabel);
+	free(endlabel);
 
 	return blk;
 }
