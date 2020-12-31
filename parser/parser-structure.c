@@ -9,8 +9,8 @@ CLASSVARTYPE parseclassvartype(PARSER* p);
 CLASSVARDEC* parseclassvardec(PARSER* p);
 CLASSVARDEC* parseclassvardecs(PARSER* p);
 SUBROUTCLASS parsesubroutclass(PARSER* p);
-SUBROUTDEC* parsesubroutdec(PARSER* p);
-SUBROUTDEC* parsesubroutdecs(PARSER* p);
+SUBROUTDEC* parsesubroutdec(PARSER* p, CLASS* c);
+SUBROUTDEC* parsesubroutdecs(PARSER* p, CLASS* c);
 PARAMETER* parseparameter(PARSER* p);
 PARAMETER* parseparameters(PARSER* p);
 SUBROUTBODY* parsesubroutbody(PARSER* p);
@@ -40,7 +40,7 @@ CLASS* parseclass(PARSER* p) {
 
 	class->vardecs = parseclassvardecs(p);
 
-	class->subroutdecs = parsesubroutdecs(p);
+	class->subroutdecs = parsesubroutdecs(p, class);
 
 	checkcontent(p, "}");
 
@@ -94,7 +94,7 @@ SUBROUTCLASS parsesubroutclass(PARSER* p) {
 	return parsepossibilities(p, &subroutclasses);
 }
 
-SUBROUTDEC* parsesubroutdec(PARSER* p) {
+SUBROUTDEC* parsesubroutdec(PARSER* p, CLASS* c) {
 	SUBROUTCLASS subroutclass = parsesubroutclass(p);
 	if(subroutclass == -1)
 		return NULL;
@@ -122,14 +122,16 @@ SUBROUTDEC* parsesubroutdec(PARSER* p) {
 	subroutdec->body = parsesubroutbody(p);
 	checkcontent(p, "}");
 
+	subroutdec->class = c;
+
 	return subroutdec;
 }
 
-SUBROUTDEC* parsesubroutdecs(PARSER* p) {
-	SUBROUTDEC* head = parsesubroutdec(p);
+SUBROUTDEC* parsesubroutdecs(PARSER* p, CLASS* c) {
+	SUBROUTDEC* head = parsesubroutdec(p, c);
 	SUBROUTDEC* curr = head;
 	SUBROUTDEC* nexts;
-	while(nexts = parsesubroutdec(p), nexts != NULL) {
+	while(nexts = parsesubroutdec(p, c), nexts != NULL) {
 		curr->next = nexts;
 		curr = nexts;
 	}

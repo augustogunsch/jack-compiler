@@ -7,6 +7,7 @@
 #include "parser.h"
 #include "compiler.h"
 #include "io.h"
+#include "os.h"
 
 typedef struct unit {
 	FILELIST* file;
@@ -119,6 +120,7 @@ int main(int argc, char* argv[]) {
 		currunit = currunit->next;
 	}
 
+	populateos();
 	actonunits(head, compileunit);
 
 	currunit = head;
@@ -133,5 +135,6 @@ int main(int argc, char* argv[]) {
 		currunit = currunit->next;
 	}
 
+	freeos();
 	return 0;
 }

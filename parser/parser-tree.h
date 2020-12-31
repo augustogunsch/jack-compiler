@@ -49,6 +49,7 @@ typedef enum {
 
 typedef struct subroutdec {
 	SUBROUTCLASS subroutclass;
+	CLASS* class;
 	char* type;
 	char* name;
 	struct parameter* parameters;

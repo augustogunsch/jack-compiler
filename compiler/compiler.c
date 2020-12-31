@@ -108,11 +108,18 @@ LINEBLOCK* pushunaryopterm(SCOPE* s, TERM* t) {
 	return blk;
 }
 
-LINEBLOCK* opvar(SCOPE* s, char* op, const char* name) {
-	VAR* v = getvar(s, name);
+LINEBLOCK* opvarraw(SCOPE* s, char* op, VAR* v) {
 	char* tokens[] = { op, v->memsegment, itoa(v->index) };
 	return mklnblk(mksimpleln(tokens, strcount(tokens)));
+}
 
+LINEBLOCK* opvar(SCOPE* s, char* op, const char* name) {
+	VAR* v = getvar(s, name);
+	return opvarraw(s, op, v);
+}
+
+LINEBLOCK* pushvarraw(SCOPE*s, VAR* v) {
+	return opvarraw(s, "push", v);
 }
 
 LINEBLOCK* pushvar(SCOPE* s, const char* name) {
@@ -185,64 +192,39 @@ LINEBLOCK* compileexplist(SCOPE* s, EXPRESSIONLIST* explist) {
 	return head;
 }
 
-LINEBLOCK* compilecallln(SCOPE* s, SUBROUTCALL* call) {
+LINEBLOCK* compilecallln(SCOPE* s, SUBROUTDEC* d, SUBROUTCALL* call) {
 	LINE* ln = mkline(3);
 
 	addtoken(ln, ezheapstr("call"));
 
-	if(call->parentname != NULL)
-		addtoken(ln, dotlabel(call->parentname, call->name));
-	else
-		addtoken(ln, dotlabel(s->currclass->name, call->name));
+	addtoken(ln, dotlabel(d->class->name, call->name));
 
-	addtoken(ln, itoa(countexpressions(call->parameters)));
+	int count = countexpressions(call->parameters);
+	if(d->subroutclass == method)
+		count++;
+	addtoken(ln, itoa(count));
 
 	return mklnblk(ln);
 }
 
-// temporary ignore list for OS functions
-char* ignoresubroutdecs[] = {
-	"printInt", "void", "peek", "int", "poke", "void", "deAlloc", "void", "setColor", "void", "drawRectangle", "void",
-	"wait", "void", "keyPressed", "char"
-};
-int ignorecount = sizeof(ignoresubroutdecs) / sizeof(char*);
-
-SUBROUTCLASS ignoreclasses[] = {
-	function, function, function, function, function, function, function, function
-};
-
 LINEBLOCK* compilesubroutcall(SCOPE* s, SUBROUTCALL* call) {
-	LINEBLOCK* blk = compilecallln(s, call);
+	VAR* v;
+	SUBROUTDEC* d = getsubroutdecfromcall(s, call, &v);
+	LINEBLOCK* blk = compilecallln(s, d, call);
 
 	if(call->parameters != NULL)
 		blk = mergelnblks(compileexplist(s, call->parameters), blk);
 
-	// void functions always return 0
-	// therefore must be thrown away
-
-	// gambiarra
-	SUBROUTCLASS class;
-	char* type = NULL;
-	for(int i = 0; i < ignorecount; i += 2) {
-		if(!strcmp(call->name, ignoresubroutdecs[i])) {
-			type = ignoresubroutdecs[i+1];
-			class = ignoreclasses[i];
-			break;
-		}
-	}
-	if(type == NULL) {
-		SUBROUTDEC* dec = getsubroutdecfromcall(s, call);
-		type = dec->type;
-		class = dec->subroutclass;
-	}
-	if(class == method) {
-		// could be more efficient since getsubroutdecfromcall() gets the parent already
+	if(d->subroutclass == method) {
 		if(call->parentname == NULL)
 			blk = mergelnblks(pushthis(), blk);
 		else
-			blk = mergelnblks(pushvar(s, call->parentname), blk);
+			blk = mergelnblks(pushvarraw(s, v), blk);
 	}
-	if(!strcmp(type, "void")) {
+
+	// void functions always return 0
+	// therefore must be thrown away
+	if(!strcmp(d->type, "void")) {
 		char* tokens[] = { "pop", "temp", "0" };
 		appendln(blk, mksimpleln(tokens, sizeof(tokens) / sizeof(char*)));
 	}
@@ -418,13 +400,13 @@ LINEBLOCK* compileconstructor(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTDEC* con)
 	LINE* label = mksubdeclabel(cl, con);
 	LINEBLOCK* blk = mklnblk(label);
 
-	char* size[] = { "push", itoa(getobjsize(cl)) };
+	char* size[] = { "push", "constant", itoa(getobjsize(cl)) };
 	char* memalloc[] = { "call", "Memory.alloc", "1" };
 	char* poppointer[] = { "pop", "pointer", "0" };
 	appendln(blk, mksimpleln(size, strcount(size)));
 	appendln(blk, mksimpleln(memalloc, strcount(memalloc)));
 	appendln(blk, mksimpleln(poppointer, strcount(poppointer)));
-	free(size[1]);
+	free(size[2]);
 
 	if(con->body != NULL)
 		return mergelnblks(blk, compilefunbody(c, s, cl, con->body));
@@ -436,7 +418,7 @@ LINEBLOCK* compilemethod(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTDEC* m) {
 	LINE* label = mksubdeclabel(cl, m);
 	LINEBLOCK* blk = mklnblk(label);
 
-	char* pusharg0[] = { "push", "argument" "0" };
+	char* pusharg0[] = { "push", "argument", "0" };
 	char* poppointer[] = { "pop", "pointer", "0" };
 	appendln(blk, mksimpleln(pusharg0, strcount(pusharg0)));
 	appendln(blk, mksimpleln(poppointer, strcount(poppointer)));

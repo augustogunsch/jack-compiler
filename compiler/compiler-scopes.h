@@ -43,7 +43,7 @@ void addparameters(SCOPE* s, PARAMETER* params);
 SCOPE* mkscope(SCOPE* prev);
 
 // Single type getters
-SUBROUTDEC* getsubroutdecfromcall(SCOPE* s, SUBROUTCALL* call);
+SUBROUTDEC* getsubroutdecfromcall(SCOPE* s, SUBROUTCALL* call, VAR** varret);
 CLASS* getclass(SCOPE* s, const char* name);
 
 // Generic getters

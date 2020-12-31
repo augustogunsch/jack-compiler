@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "compiler-scopes.h"
+#include "os.h"
 
 typedef enum { local, staticseg, arg, fieldseg } MEMSEGMENT;
 char* memsegnames[] = { "local", "static", "argument", "this" };
@@ -16,7 +17,7 @@ CLASS* getclass(SCOPE* s, const char* name);
 SUBROUTDEC* getsubroutdecfromlist(SUBROUTDEC* start, char* name);
 SUBROUTDEC* getmethod(SCOPE* s, VAR* parent, SUBROUTCALL* call);
 SUBROUTDEC* getfunction(SCOPE* s, SUBROUTCALL* call);
-SUBROUTDEC* getsubroutdecwithparent(SCOPE* s, SUBROUTCALL* call);
+SUBROUTDEC* getsubroutdecwithparent(SCOPE* s, SUBROUTCALL* call, VAR** varret);
 SUBROUTDEC* getsubroutdecwithoutparent(SCOPE* s, SUBROUTCALL* call);
 SUBROUTDEC* getsubroutdec(SCOPE* s, const char* name);
 
@@ -124,7 +125,7 @@ SUBROUTDEC* getmethod(SCOPE* s, VAR* parent, SUBROUTCALL* call) {
 	CLASS* c = getclass(s, parent->type);
 	SUBROUTDEC* d = getsubroutdecfromlist(c->subroutdecs, call->name);
 	if(d == NULL)
-		notdeclared(call->name, call->debug);
+		return NULL;
 	if(d->subroutclass != method) {
 		eprintf("Calling a function/constructor as if it were a method; file '%s', line %i\n", call->debug->file, call->debug->definedat);
 		exit(1);
@@ -138,7 +139,7 @@ SUBROUTDEC* getfunction(SCOPE* s, SUBROUTCALL* call) {
 		notdeclared(call->parentname, call->debug);
 	SUBROUTDEC* d = getsubroutdecfromlist(c->subroutdecs, call->name);
 	if(d == NULL)
-		notdeclared(call->name, call->debug);
+		return NULL;
 	if(d->subroutclass == method) {
 		eprintf("Calling a method as if it were a function; file '%s', line %i\n", call->debug->file, call->debug->definedat);
 		exit(1);
@@ -146,26 +147,39 @@ SUBROUTDEC* getfunction(SCOPE* s, SUBROUTCALL* call) {
 	return d;
 }
 
-SUBROUTDEC* getsubroutdecwithparent(SCOPE* s, SUBROUTCALL* call) {
+SUBROUTDEC* getsubroutdecwithparent(SCOPE* s, SUBROUTCALL* call, VAR** varret) {
 	VAR* parent = getvar(s, call->parentname);
-	if(parent != NULL)
+	if(parent != NULL) {
+		if(parent->primitive) {
+			eprintf("Primitive type does not have subroutines; file '%s', line %i\n", call->debug->file, call->debug->definedat);
+			exit(1);
+		}
+		*varret = parent;
 		return getmethod(s, parent, call);
-	else 
+	}
+	else
 		return getfunction(s, call);
 }
 
 SUBROUTDEC* getsubroutdecwithoutparent(SCOPE* s, SUBROUTCALL* call) {
 	SUBROUTDEC* d = getsubroutdecfromlist(s->currclass->subroutdecs, call->name);
-	if(d == NULL)
-		notdeclared(call->name, call->debug);
 	return d;
 }
 
-SUBROUTDEC* getsubroutdecfromcall(SCOPE* s, SUBROUTCALL* call) {
-	if(call->parentname != NULL)
-		return getsubroutdecwithparent(s, call);
-	else
-		return getsubroutdecwithoutparent(s, call);
+SUBROUTDEC* getsubroutdecfromcall(SCOPE* s, SUBROUTCALL* call, VAR** varret) {
+	SUBROUTDEC* d;
+	*varret = NULL;
+	if(call->parentname != NULL) {
+		d = getossubroutdec(call);
+		if(d == NULL)
+			d = getsubroutdecwithparent(s, call, varret);
+	}
+	else {
+		d = getsubroutdecwithoutparent(s, call);
+	}
+	if(d == NULL)
+		notdeclared(call->name, call->debug);
+	return d;
 }
 
 SUBROUTDEC* getsubroutdec(SCOPE* s, const char* name) {
@@ -234,7 +248,7 @@ void addfield(SCOPE* s, CLASSVARDEC* v) {
 }
 
 void addclassvardec(SCOPE* s, CLASSVARDEC* v) {
-	if(v->type == staticseg)
+	if(v->type == stat)
 		addstaticvar(s, v);
 	else
 		addfield(s, v);
