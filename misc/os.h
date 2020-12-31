@@ -3,6 +3,7 @@
 #include "parser-tree.h"
 
 SUBROUTDEC* getossubroutdec(SUBROUTCALL* call);
+CLASS* getosclass(const char* name);
 void populateos();
 void freeos();
 

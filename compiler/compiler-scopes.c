@@ -113,7 +113,7 @@ CLASS* getclass(SCOPE* s, const char* name) {
 	}
 	if(s->previous != NULL)
 		return getclass(s->previous, name);
-	return NULL;
+	return getosclass(name);
 }
 
 SUBROUTDEC* getsubroutdecfromlist(SUBROUTDEC* start, char* name) {

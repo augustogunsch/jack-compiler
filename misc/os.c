@@ -3,102 +3,99 @@
 #include "os.h"
 #include "util.h"
 
-#define MATH_COUNT 5
-SUBROUTDEC* math[MATH_COUNT];
-#define STRING_COUNT 12
-SUBROUTDEC* stringclass[STRING_COUNT];
-#define ARRAY_COUNT 2
-SUBROUTDEC* array[ARRAY_COUNT];
-#define OUTPUT_COUNT 6
-SUBROUTDEC* output[OUTPUT_COUNT];
-#define SCREEN_COUNT 6
-SUBROUTDEC* screen[SCREEN_COUNT];
-#define KEYBOARD_COUNT 4
-SUBROUTDEC* keyboard[KEYBOARD_COUNT];
-#define MEMORY_COUNT 4
-SUBROUTDEC* memory[MEMORY_COUNT];
-#define SYS_COUNT 3
-SUBROUTDEC* sys[SYS_COUNT];
+CLASS* classes = NULL;
 
-CLASS* mkclass(const char* name) {
-	CLASS* class = (CLASS*)malloc(sizeof(CLASS));
-	class->name = ezheapstr(name);
-	return class;
+CLASS* addclass(const char* name) {
+	CLASS* c = (CLASS*)malloc(sizeof(CLASS));
+	c->name = ezheapstr(name);
+	c->subroutdecs = NULL;
+	c->next = classes;
+	classes = c;
+	return c;
 }
 
-SUBROUTDEC* mkdec(const char* class, SUBROUTCLASS subroutclass, char* type, const char* name) {
+CLASS* adddec(CLASS* c, SUBROUTCLASS subroutclass, char* type, const char* name) {
 	SUBROUTDEC* dec = (SUBROUTDEC*)malloc(sizeof(SUBROUTDEC));
-	dec->class = mkclass(class);
+	dec->class = c;
 	dec->subroutclass = subroutclass;
 	dec->type = type;
 	dec->name = ezheapstr(name);
-	return dec;
+	dec->next = c->subroutdecs;
+	c->subroutdecs = dec;
 }
 
 void populatemath() {
-	math[0] = mkdec("Math", function, "int", "multiply");
-	math[1] = mkdec("Math", function, "int", "divide");
-	math[2] = mkdec("Math", function, "int", "min");
-	math[3] = mkdec("Math", function, "int", "max");
-	math[4] = mkdec("Math", function, "int", "sqrt");
+	CLASS* mathclass = addclass("Math");
+	adddec(mathclass, function, "int", "multiply");
+	adddec(mathclass, function, "int", "divide");
+	adddec(mathclass, function, "int", "min");
+	adddec(mathclass, function, "int", "max");
+	adddec(mathclass, function, "int", "sqrt");
 }
 
 void populatestringclass() {
-	stringclass[0] = mkdec("String", constructor, "String", "new");
-	stringclass[1] = mkdec("String", method, "int", "dispose");
-	stringclass[2] = mkdec("String", method, "int", "length");
-	stringclass[3] = mkdec("String", method, "char", "charAt");
-	stringclass[4] = mkdec("String", method, "void", "setCharAt");
-	stringclass[5] = mkdec("String", method, "String", "appendChar");
-	stringclass[6] = mkdec("String", method, "void", "eraseLastChar");
-	stringclass[7] = mkdec("String", method, "int", "intValue");
-	stringclass[8] = mkdec("String", method, "void", "setInt");
-	stringclass[9] = mkdec("String", function, "char", "backSpace");
-	stringclass[10] = mkdec("String", function, "char", "doubleQuote");
-	stringclass[11] = mkdec("String", function, "char", "newLine");
+	CLASS* strclass = addclass("String");
+	adddec(strclass, constructor, "String", "new");
+	adddec(strclass, method, "int", "dispose");
+	adddec(strclass, method, "int", "length");
+	adddec(strclass, method, "char", "charAt");
+	adddec(strclass, method, "void", "setCharAt");
+	adddec(strclass, method, "String", "appendChar");
+	adddec(strclass, method, "void", "eraseLastChar");
+	adddec(strclass, method, "int", "intValue");
+	adddec(strclass, method, "void", "setInt");
+	adddec(strclass, function, "char", "backSpace");
+	adddec(strclass, function, "char", "doubleQuote");
+	adddec(strclass, function, "char", "newLine");
 }
 
 void populatearray() {
-	array[0] = mkdec("Array", function, "Array", "new");
-	array[1] = mkdec("Array", method, "void", "dispose");
+	CLASS* arrclass = addclass("Array");
+	adddec(arrclass, function, "Array", "new");
+	adddec(arrclass, method, "void", "dispose");
 }
 
 void populateoutput() {
-	output[0] = mkdec("Output", function, "void", "moveCursor");
-	output[1] = mkdec("Output", function, "void", "printChar");
-	output[2] = mkdec("Output", function, "void", "printString");
-	output[3] = mkdec("Output", function, "void", "printInt");
-	output[4] = mkdec("Output", function, "void", "printLn");
-	output[5] = mkdec("Output", function, "void", "backSpace");
+	CLASS* outclass = addclass("Output");
+	adddec(outclass, function, "void", "moveCursor");
+	adddec(outclass, function, "void", "printChar");
+	adddec(outclass, function, "void", "printString");
+	adddec(outclass, function, "void", "printInt");
+	adddec(outclass, function, "void", "printLn");
+	adddec(outclass, function, "void", "backSpace");
 }
 
 void populatescreen() {
-	screen[0] = mkdec("Screen", function, "void", "clearScreen");
-	screen[1] = mkdec("Screen", function, "void", "setColor");
-	screen[2] = mkdec("Screen", function, "void", "drawPixel");
-	screen[3] = mkdec("Screen", function, "void", "drawLine");
-	screen[4] = mkdec("Screen", function, "void", "drawRectangle");
-	screen[5] = mkdec("Screen", function, "void", "drawCircle");
+	CLASS* scrclass = addclass("Screen");
+	adddec(scrclass, function, "void", "clearScreen");
+	adddec(scrclass, function, "void", "setColor");
+	adddec(scrclass, function, "void", "drawPixel");
+	adddec(scrclass, function, "void", "drawLine");
+	adddec(scrclass, function, "void", "drawRectangle");
+	adddec(scrclass, function, "void", "drawCircle");
 }
 
 void populatekeyboard() {
-	keyboard[0] = mkdec("Keyboard", function, "char", "keyPressed");
-	keyboard[1] = mkdec("Keyboard", function, "char", "readChar");
-	keyboard[2] = mkdec("Keyboard", function, "String", "readLine");
-	keyboard[3] = mkdec("Keyboard", function, "int", "readInt");
+	CLASS* kbdclass = addclass("Keyboard");
+	adddec(kbdclass, function, "char", "keyPressed");
+	adddec(kbdclass, function, "char", "readChar");
+	adddec(kbdclass, function, "String", "readLine");
+	adddec(kbdclass, function, "int", "readInt");
 }
 
 void populatememory() {
-	memory[0] = mkdec("Memory", function, "int", "peek");
-	memory[1] = mkdec("Memory", function, "void", "poke");
-	memory[2] = mkdec("Memory", function, "Array", "alloc");
-	memory[3] = mkdec("Memory", function, "void", "deAlloc");
+	CLASS* memclass = addclass("Memory");
+	adddec(memclass, function, "int", "peek");
+	adddec(memclass, function, "void", "poke");
+	adddec(memclass, function, "Array", "alloc");
+	adddec(memclass, function, "void", "deAlloc");
 }
 
 void populatesys() {
-	sys[0] = mkdec("Sys", function, "void", "halt");
-	sys[1] = mkdec("Sys", function, "void", "error");
-	sys[2] = mkdec("Sys", function, "void", "wait");
+	CLASS* sysclass = addclass("Sys");
+	adddec(sysclass, function, "void", "halt");
+	adddec(sysclass, function, "void", "error");
+	adddec(sysclass, function, "void", "wait");
 }
 
 void populateos() {
@@ -112,48 +109,47 @@ void populateos() {
 	populatesys();
 }
 
-void freedecs(SUBROUTDEC** array, int size) {
-	for(int i = 0; i < size; i++) {
-		free(array[i]->class->name);
-		free(array[i]->class);
-		free(array[i]->name);
-		free(array[i]);
-	}
+void freesubroutdecs(SUBROUTDEC* d) {
+	free(d->name);
+	free(d->type);
+	if(d->next != NULL)
+		freesubroutdecs(d->next);
+}
+
+void freeclasses(CLASS* c) {
+	freesubroutdecs(c->subroutdecs);
+	free(c->name);
+	if(c->next != NULL)
+		freeclasses(c->next);
 }
 
 void freeos() {
-	freedecs(math, MATH_COUNT);
-	freedecs(stringclass, STRING_COUNT);
-	freedecs(array, ARRAY_COUNT);
-	freedecs(output, OUTPUT_COUNT);
-	freedecs(screen, SCREEN_COUNT);
-	freedecs(keyboard, KEYBOARD_COUNT);
-	freedecs(memory, MEMORY_COUNT);
-	freedecs(sys, SYS_COUNT);
+	freeclasses(classes);
 }
 
-SUBROUTDEC* getdec(SUBROUTDEC** array, int size, const char* name) {
-	for(int i = 0; i < size; i++)
-		if(!strcmp(array[i]->name, name))
-			return array[i];
+SUBROUTDEC* getsubroutdecinclass(CLASS* c, const char* name) {
+	SUBROUTDEC* curr = c->subroutdecs;
+	while(curr != NULL) {
+		if(!strcmp(curr->name, name))
+			return curr;
+		curr = curr->next;
+	}
+	return NULL;
+}
+
+CLASS* getosclass(const char* name) {
+	CLASS* curr = classes;
+	while(curr != NULL) {
+		if(!strcmp(curr->name, name))
+			return curr;
+		curr = curr->next;
+	}
+	return NULL;
 }
 
 SUBROUTDEC* getossubroutdec(SUBROUTCALL* call) {
-	if(!strcmp(call->parentname, "Math"))
-		return getdec(math, MATH_COUNT, call->name);
-	if(!strcmp(call->parentname, "String"))
-		return getdec(stringclass, STRING_COUNT, call->name);
-	if(!strcmp(call->parentname, "Array"))
-		return getdec(array, ARRAY_COUNT, call->name);
-	if(!strcmp(call->parentname, "Output"))
-		return getdec(output, OUTPUT_COUNT, call->name);
-	if(!strcmp(call->parentname, "Screen"))
-		return getdec(screen, SCREEN_COUNT, call->name);
-	if(!strcmp(call->parentname, "Keyboard"))
-		return getdec(keyboard, KEYBOARD_COUNT, call->name);
-	if(!strcmp(call->parentname, "Memory"))
-		return getdec(memory, MEMORY_COUNT, call->name);
-	if(!strcmp(call->parentname, "Sys"))
-		return getdec(sys, SYS_COUNT, call->name);
-	return NULL;
+	CLASS* c = getosclass(call->parentname);
+	if(c == NULL)
+		return NULL;
+	getsubroutdecinclass(c, call->name);
 }
