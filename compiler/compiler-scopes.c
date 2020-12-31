@@ -283,8 +283,8 @@ void addlocalvars(SCOPE* s, VARDEC* localvars) {
 	}
 }
 
-void addparameters(SCOPE* s, PARAMETER* params) {
-	int i = 0;
+void addparameters(SCOPE* s, bool isformethod, PARAMETER* params) {
+	int i = isformethod ? 1 : 0;
 	while(params != NULL) {
 		addparameter(s, params, &i);
 		params = params->next;

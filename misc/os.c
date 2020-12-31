@@ -28,6 +28,7 @@ void populatemath() {
 	CLASS* mathclass = addclass("Math");
 	adddec(mathclass, function, "int", "multiply");
 	adddec(mathclass, function, "int", "divide");
+	adddec(mathclass, function, "int", "abs");
 	adddec(mathclass, function, "int", "min");
 	adddec(mathclass, function, "int", "max");
 	adddec(mathclass, function, "int", "sqrt");
@@ -61,7 +62,7 @@ void populateoutput() {
 	adddec(outclass, function, "void", "printChar");
 	adddec(outclass, function, "void", "printString");
 	adddec(outclass, function, "void", "printInt");
-	adddec(outclass, function, "void", "printLn");
+	adddec(outclass, function, "void", "println");
 	adddec(outclass, function, "void", "backSpace");
 }
 

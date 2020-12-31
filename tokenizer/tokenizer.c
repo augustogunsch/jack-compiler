@@ -201,10 +201,10 @@ TOKEN* tokenize(char* file) {
 	FILE* input = fopen(file, "r");
 	
 	unsigned char c;
-	while(c = fgetc(input), !feof(input)) {
-		if(c == '\n') {
+	while(!feof(input)) {
+		c = fgetc(input);
+		if(c == '\n')
 			lnscount++;
-		}
 		else if(c == '/' && handlecomment(input, &lnscount)) 
 			continue;
 		else if(c == '"') {

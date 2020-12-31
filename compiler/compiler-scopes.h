@@ -40,7 +40,7 @@ struct compiler;
 // Group adding
 void addclassvardecs(struct compiler* c, SCOPE* s, CLASSVARDEC* classvardecs);
 void addlocalvars(SCOPE* s, VARDEC* localvars);
-void addparameters(SCOPE* s, PARAMETER* params);
+void addparameters(SCOPE* s, bool isformethod, PARAMETER* params);
 
 // Scope handling
 SCOPE* mkscope(SCOPE* prev);

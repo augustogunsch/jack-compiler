@@ -176,8 +176,7 @@ LINEBLOCK* compilekeywordconst(SCOPE* s, TERM* t) {
 	if(!strcmp(t->string, "true")) return pushtrue();
 	if(!strcmp(t->string, "false")) return mklnblk(pushfalse());
 	if(!strcmp(t->string, "this")) return mklnblk(pushthisadd());
-	eprintf("Unsupported keyword '%s'\n", t->string);
-	exit(1);
+	return mklnblk(pushconstant(0));
 }
 
 char* toascii(char c) {
@@ -521,7 +520,7 @@ LINEBLOCK* compilesubroutdec(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTDEC* sd) {
 	// must switch all of these
 	SCOPE* myscope = mkscope(s);
 	if(sd->parameters != NULL)
-		addparameters(myscope, sd->parameters);
+		addparameters(myscope, sd->subroutclass == method, sd->parameters);
 	if(sd->subroutclass == function)
 		return compilefundec(c, myscope, cl, sd);
 	if(sd->subroutclass == constructor)
