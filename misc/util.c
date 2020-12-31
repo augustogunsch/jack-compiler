@@ -40,6 +40,13 @@ char* itoa(int i) {
 	return a;
 }
 
+char* dotlabel(char* n1, char* n2) {
+	int sz = (strlen(n1) + strlen(n2) + 2) * sizeof(char);
+	char* result = (char*)malloc(sz);
+	sprintf(result, "%s.%s", n1, n2);
+	return result;
+}
+
 STRINGLIST* onestr(const char* str) {
 	STRINGLIST* strlist = (STRINGLIST*)malloc(sizeof(STRINGLIST));
 	strlist->content = ezheapstr(str);

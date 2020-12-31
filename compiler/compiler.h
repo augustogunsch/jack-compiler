@@ -5,12 +5,14 @@
 #include "vm-lines.h"
 #include "compiler-scopes.h"
 
+struct scope;
+
 typedef struct compiler {
 	pthread_mutex_t ifmutex;
 	pthread_mutex_t whilemutex;
 	pthread_mutex_t staticmutex;
 	CLASS* classes;
-	SCOPE* globalscope;
+	struct scope* globalscope;
 } COMPILER;
 
 COMPILER* mkcompiler(CLASS* classes);

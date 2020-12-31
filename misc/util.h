@@ -27,6 +27,7 @@ char* ezheapstr(const char* str);
 int countplaces(int n);
 char* itoa(int i);
 void* copy(void* v, int size);
+char* dotlabel(char* n1, char* n2);
 
 STRINGLIST* onestr(const char* str);
 STRINGLIST* initstrlist(const char** strs, int count);
