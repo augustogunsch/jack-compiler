@@ -53,8 +53,6 @@ char* getname(char* f, int len) {
 			startind = i+1;
 			break;
 		}
-		if(f[i] == '.')
-			endind = i-1;
 		readsmt = true;
 	}
 
@@ -65,8 +63,7 @@ char* getname(char* f, int len) {
 	return retstr;
 }
 
-char* getfullname(char* fname, char* dirname, int dirlen) {
-	int fnamelen = strlen(fname);
+char* getfullname(char* fname, int fnamelen, char* dirname, int dirlen) {
 	int sz = sizeof(char)*(fnamelen+dirlen+2);
 	char* fullname = (char*)malloc(sz);
 	sprintf(fullname, "%s/%s", dirname, fname);
@@ -122,9 +119,10 @@ FILELIST* getfilesfromdir(char* dir) {
 	int len = strlen(dir);
 	struct dirent* thisfile;
 	while(thisfile = readdir(d), thisfile != NULL) {
-		if(isdotjack(thisfile->d_name, strlen(thisfile->d_name))) {
-			char* fullname = getfullname(thisfile->d_name, dir, len);
-			char* name = getname(thisfile->d_name, len);
+		int thislen = strlen(thisfile->d_name);
+		if(isdotjack(thisfile->d_name, thislen)) {
+			char* fullname = getfullname(thisfile->d_name, thislen, dir, len);
+			char* name = ezheapstr(thisfile->d_name);
 			filelist = addfile(filelist, fullname, name);
 		}
 	}

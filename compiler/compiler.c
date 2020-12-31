@@ -1,8 +1,9 @@
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 #include "compiler.h"
 
-LINEBLOCK* compilestatements(SCOPE* s, STATEMENT* sts);
+LINEBLOCK* compilestatements(COMPILER* c, SCOPE* s, STATEMENT* sts);
 LINEBLOCK* compilesubroutcall(SCOPE* s, SUBROUTCALL* call);
 LINEBLOCK* compileexpression(SCOPE* s, TERM* e);
 
@@ -263,12 +264,14 @@ LINEBLOCK* compileret(SCOPE* s, TERM* e) {
 	return blk;
 }
 
-LINEBLOCK* compileif(SCOPE* s, IFSTATEMENT* st) {
+LINEBLOCK* compileif(COMPILER* c, SCOPE* s, IFSTATEMENT* st) {
 	LINEBLOCK* blk = compileexpression(s, st->base->expression);
 
+	pthread_mutex_lock(&(c->ifmutex));
 	static int ifcount = 0;
 	int mycount = ifcount;
 	ifcount++;
+	pthread_mutex_unlock(&(c->ifmutex));
 	
 	char* truelabel = mkcondlabel("IF_TRUE", mycount);
 	char* ifgoto[] = { "if-goto", truelabel };
@@ -281,7 +284,7 @@ LINEBLOCK* compileif(SCOPE* s, IFSTATEMENT* st) {
 	char* truelabelln[] = { "label", truelabel };
 	appendln(blk, mksimpleln(truelabelln, strcount(truelabelln)));
 
-	blk = mergelnblks(blk, compilestatements(s, st->base->statements));
+	blk = mergelnblks(blk, compilestatements(c, s, st->base->statements));
 
 	char* endlabel;
 	bool haselse = st->elsestatements != NULL;
@@ -295,7 +298,7 @@ LINEBLOCK* compileif(SCOPE* s, IFSTATEMENT* st) {
 	appendln(blk, mksimpleln(falselabelln, strcount(falselabelln)));
 
 	if(haselse) {
-		blk = mergelnblks(blk, compilestatements(s, st->elsestatements));
+		blk = mergelnblks(blk, compilestatements(c, s, st->elsestatements));
 		char* endlabelln[] = { "label", endlabel };
 		appendln(blk, mksimpleln(endlabelln, strcount(endlabelln)));
 	}
@@ -304,12 +307,14 @@ LINEBLOCK* compileif(SCOPE* s, IFSTATEMENT* st) {
 	return blk;
 }
 
-LINEBLOCK* compilewhile(SCOPE* s, CONDSTATEMENT* w) {
+LINEBLOCK* compilewhile(COMPILER* c, SCOPE* s, CONDSTATEMENT* w) {
 	LINEBLOCK* blk = compileexpression(s, w->expression);
 
+	pthread_mutex_lock(&(c->whilemutex));
 	static int whilecount = 0;
 	int mycount = whilecount;
 	whilecount++;
+	pthread_mutex_unlock(&(c->whilemutex));
 
 	char* explabel = mkcondlabel("WHILE_EXP", mycount);
 	char* explabelln[] = { "label", explabel };
@@ -321,7 +326,7 @@ LINEBLOCK* compilewhile(SCOPE* s, CONDSTATEMENT* w) {
 	char* ifgoto[] = { "if-goto", endlabel };
 	appendln(blk, mksimpleln(ifgoto, strcount(ifgoto)));
 
-	blk = mergelnblks(blk, compilestatements(s, w->statements));
+	blk = mergelnblks(blk, compilestatements(c, s, w->statements));
 
 	char* gotoln[] = { "goto", explabel };
 	appendln(blk, mksimpleln(gotoln, strcount(gotoln)));
@@ -339,32 +344,32 @@ LINEBLOCK* compilelet(SCOPE* s, LETSTATEMENT* l) {
 	return blk;
 }
 
-LINEBLOCK* compilestatement(SCOPE* s, STATEMENT* st) {
+LINEBLOCK* compilestatement(COMPILER* c, SCOPE* s, STATEMENT* st) {
 	s->currdebug = st->debug;
 	if(st->type == dostatement) return compilesubroutcall(s, st->dostatement);
 	if(st->type == returnstatement) return compileret(s, st->retstatement);
-	if(st->type == ifstatement) return compileif(s, st->ifstatement);
-	if(st->type == whilestatement) return compilewhile(s, st->whilestatement);
+	if(st->type == ifstatement) return compileif(c, s, st->ifstatement);
+	if(st->type == whilestatement) return compilewhile(c, s, st->whilestatement);
 	if(st->type == letstatement) return compilelet(s, st->letstatement);
 	eprintf("UNSUPPORTED type %i\n", st->type);
 	exit(1);
 }
 
-LINEBLOCK* compilestatements(SCOPE* s, STATEMENT* sts) {
+LINEBLOCK* compilestatements(COMPILER* c, SCOPE* s, STATEMENT* sts) {
 	LINEBLOCK* head = NULL;
 	while(sts != NULL) {
-		head = mergelnblks(head, compilestatement(s, sts));
+		head = mergelnblks(head, compilestatement(c, s, sts));
 		sts = sts->next;
 	}
 	return head;
 }
 
-LINEBLOCK* compilefunbody(SCOPE* s, CLASS* c, SUBROUTBODY* b) {
+LINEBLOCK* compilefunbody(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTBODY* b) {
 	SCOPE* myscope = mkscope(s);
-	myscope->currclass = c;
+	myscope->currclass = cl;
 	if(b->vardecs != NULL)
 		addlocalvars(s, b->vardecs);
-	LINEBLOCK* head = compilestatements(myscope, b->statements);
+	LINEBLOCK* head = compilestatements(c, myscope, b->statements);
 	return head;
 }
 
@@ -377,11 +382,11 @@ LINE* mksubdeclabel(CLASS* c, SUBROUTDEC* sd) {
 	return label;
 }
 
-LINEBLOCK* compilefundec(SCOPE* s, CLASS* c, SUBROUTDEC* f) {
-	LINE* label = mksubdeclabel(c, f);
+LINEBLOCK* compilefundec(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTDEC* f) {
+	LINE* label = mksubdeclabel(cl, f);
 
 	if(f->body->statements != NULL) {
-		LINEBLOCK* body = compilefunbody(s, c, f->body);
+		LINEBLOCK* body = compilefunbody(c, s, cl, f->body);
 		appendlnbefore(body, label);
 		return body;
 	}
@@ -409,11 +414,11 @@ int getobjsize(CLASS* c) {
 	return count;
 }
 
-LINEBLOCK* compileconstructor(SCOPE* s, CLASS* c, SUBROUTDEC* con) {
-	LINE* label = mksubdeclabel(c, con);
+LINEBLOCK* compileconstructor(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTDEC* con) {
+	LINE* label = mksubdeclabel(cl, con);
 	LINEBLOCK* blk = mklnblk(label);
 
-	char* size[] = { "push", itoa(getobjsize(c)) };
+	char* size[] = { "push", itoa(getobjsize(cl)) };
 	char* memalloc[] = { "call", "Memory.alloc", "1" };
 	char* poppointer[] = { "pop", "pointer", "0" };
 	appendln(blk, mksimpleln(size, strcount(size)));
@@ -422,13 +427,13 @@ LINEBLOCK* compileconstructor(SCOPE* s, CLASS* c, SUBROUTDEC* con) {
 	free(size[1]);
 
 	if(con->body != NULL)
-		return mergelnblks(blk, compilefunbody(s, c, con->body));
+		return mergelnblks(blk, compilefunbody(c, s, cl, con->body));
 	else
 		return blk;
 }
 
-LINEBLOCK* compilemethod(SCOPE* s, CLASS* c, SUBROUTDEC* m) {
-	LINE* label = mksubdeclabel(c, m);
+LINEBLOCK* compilemethod(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTDEC* m) {
+	LINE* label = mksubdeclabel(cl, m);
 	LINEBLOCK* blk = mklnblk(label);
 
 	char* pusharg0[] = { "push", "argument" "0" };
@@ -437,12 +442,12 @@ LINEBLOCK* compilemethod(SCOPE* s, CLASS* c, SUBROUTDEC* m) {
 	appendln(blk, mksimpleln(poppointer, strcount(poppointer)));
 
 	if(m->body != NULL) 
-		return mergelnblks(blk, compilefunbody(s, c, m->body));
+		return mergelnblks(blk, compilefunbody(c, s, cl, m->body));
 	else
 		return blk;
 }
 
-LINEBLOCK* compilesubroutdec(SCOPE* s, CLASS* c, SUBROUTDEC* sd) {
+LINEBLOCK* compilesubroutdec(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTDEC* sd) {
 	// 'this' and arguments are pushed by caller
 	// Must have a 'return' at the end
 	// Label names must have class name too (see mapping)
@@ -453,10 +458,10 @@ LINEBLOCK* compilesubroutdec(SCOPE* s, CLASS* c, SUBROUTDEC* sd) {
 	if(sd->parameters != NULL)
 		addparameters(myscope, sd->parameters);
 	if(sd->subroutclass == function)
-		return compilefundec(myscope, c, sd);
+		return compilefundec(c, myscope, cl, sd);
 	if(sd->subroutclass == constructor)
-		return compileconstructor(myscope, c, sd);
-	return compilemethod(myscope, c, sd);
+		return compileconstructor(c, myscope, cl, sd);
+	return compilemethod(c, myscope, cl, sd);
 }
 
 LINEBLOCK* compileclass(COMPILER* c, CLASS* class) {
@@ -469,7 +474,7 @@ LINEBLOCK* compileclass(COMPILER* c, CLASS* class) {
 	LINEBLOCK* output = NULL;
 	SUBROUTDEC* curr = class->subroutdecs;
 	while(curr != NULL) {
-		output = mergelnblks(output, compilesubroutdec(topscope, class, curr));
+		output = mergelnblks(output, compilesubroutdec(c, topscope, class, curr));
 		curr = curr->next;
 	}
 	return output;
@@ -480,5 +485,14 @@ COMPILER* mkcompiler(CLASS* classes) {
 	c->globalscope = mkscope(NULL);
 	c->globalscope->classes = classes;
 	c->classes = classes;
+	pthread_mutex_init(&(c->ifmutex), NULL);
+	pthread_mutex_init(&(c->whilemutex), NULL);
 	return c;
+}
+
+void freecompiler(COMPILER* c) {
+	pthread_mutex_destroy(&(c->ifmutex));
+	pthread_mutex_destroy(&(c->whilemutex));
+	// to be continued
+	free(c);
 }

@@ -121,7 +121,17 @@ int main(int argc, char* argv[]) {
 
 	actonunits(head, compileunit);
 
-	printlns(head->compiled->head, stdout);
+	currunit = head;
+	while(currunit != NULL) {
+		FILE* output = fopen(currunit->file->outname, "w");
+		if(output == NULL) {
+			eprintf("%s", strerror(errno));
+			exit(1);
+		}
+		printlns(currunit->compiled->head, output);
+		fclose(output);
+		currunit = currunit->next;
+	}
 
 	return 0;
 }
