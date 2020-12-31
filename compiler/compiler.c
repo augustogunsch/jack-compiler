@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
 #include "compiler.h"
 
 LINEBLOCK* compilestatements(COMPILER* c, SCOPE* s, STATEMENT* sts);
@@ -449,7 +448,7 @@ LINEBLOCK* compilesubroutdec(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTDEC* sd) {
 LINEBLOCK* compileclass(COMPILER* c, CLASS* class) {
 	SCOPE* topscope = mkscope(c->globalscope);
 	if(class->vardecs != NULL)
-		addclassvardecs(topscope, class->vardecs);
+		addclassvardecs(c, topscope, class->vardecs);
 	if(class->subroutdecs != NULL)
 		topscope->subroutines = class->subroutdecs;
 
@@ -469,12 +468,14 @@ COMPILER* mkcompiler(CLASS* classes) {
 	c->classes = classes;
 	pthread_mutex_init(&(c->ifmutex), NULL);
 	pthread_mutex_init(&(c->whilemutex), NULL);
+	pthread_mutex_init(&(c->staticmutex), NULL);
 	return c;
 }
 
 void freecompiler(COMPILER* c) {
 	pthread_mutex_destroy(&(c->ifmutex));
 	pthread_mutex_destroy(&(c->whilemutex));
+	pthread_mutex_destroy(&(c->staticmutex));
 	// to be continued
 	free(c);
 }

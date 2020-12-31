@@ -1,6 +1,7 @@
 #ifndef COMPILER_SCOPES_H
 #define COMPILER_SCOPES_H
 #include "parser-tree.h"
+#include "compiler.h"
 
 /* compiler-scopes
  * Tools for dealing with scopes.
@@ -34,8 +35,10 @@ typedef struct scope {
 	struct scope* previous;
 } SCOPE;
 
+struct compiler;
+
 // Group adding
-void addclassvardecs(SCOPE* s, CLASSVARDEC* classvardecs);
+void addclassvardecs(struct compiler* c, SCOPE* s, CLASSVARDEC* classvardecs);
 void addlocalvars(SCOPE* s, VARDEC* localvars);
 void addparameters(SCOPE* s, PARAMETER* params);
 

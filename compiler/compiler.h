@@ -1,12 +1,14 @@
 #ifndef COMPILER_H
 #define COMPILER_H
-#include "compiler-scopes.h"
+#include <pthread.h>
 #include "parser-tree.h"
 #include "vm-lines.h"
+#include "compiler-scopes.h"
 
-typedef struct {
+typedef struct compiler {
 	pthread_mutex_t ifmutex;
 	pthread_mutex_t whilemutex;
+	pthread_mutex_t staticmutex;
 	CLASS* classes;
 	SCOPE* globalscope;
 } COMPILER;

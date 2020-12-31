@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <pthread.h>
+#include "compiler.h"
 #include "compiler-scopes.h"
 #include "os.h"
 
@@ -22,11 +24,13 @@ SUBROUTDEC* getsubroutdecwithoutparent(SCOPE* s, SUBROUTCALL* call);
 SUBROUTDEC* getsubroutdec(SCOPE* s, const char* name);
 
 // Scope adding
-VAR* mkvar(char* type, char* name, bool primitive, DEBUGINFO* debug, MEMSEGMENT seg);
+VAR* mkvar(char* type, char* name, bool primitive, DEBUGINFO* debug, MEMSEGMENT seg, int i);
 void addvar(SCOPE* s, VAR** dest, VAR* v);
-void addlocalvar(SCOPE* s, VARDEC* v);
-void addclassvardec(SCOPE* s, CLASSVARDEC* v);
-void addparameter(SCOPE* s, PARAMETER* p);
+void addlocalvar(SCOPE* s, VARDEC* v, int i);
+void addstaticvar(COMPILER* c, SCOPE* s, CLASSVARDEC* v);
+void addfield(SCOPE* s, CLASSVARDEC* v, int i);
+void addclassvardec(COMPILER* c, SCOPE* s, CLASSVARDEC* v, int* i);
+void addparameter(SCOPE* s, PARAMETER* p, int i);
 
 // Error messages
 void doubledeclaration(const char* name, DEBUGINFO* d1, DEBUGINFO* d2) {
@@ -195,13 +199,14 @@ SUBROUTDEC* getsubroutdec(SCOPE* s, const char* name) {
 }
 
 // Scope adding
-VAR* mkvar(char* type, char* name, bool primitive, DEBUGINFO* debug, MEMSEGMENT seg) {
+VAR* mkvar(char* type, char* name, bool primitive, DEBUGINFO* debug, MEMSEGMENT seg, int i) {
 	VAR* v = (VAR*)malloc(sizeof(VAR));
 	v->name = name;
 	v->type = type;
 	v->debug = debug;
 	v->memsegment = memsegnames[seg];
 	v->primitive = primitive;
+	v->index = i;
 	return v;
 }
 
@@ -214,68 +219,75 @@ void addvar(SCOPE* s, VAR** dest, VAR* v) {
 			notdeclared(v->type, v->debug);
 	}
 
-	if(*dest == NULL)
-		v->index = 0;
-	else
-		v->index = 1+(*dest)->index;
-
 	v->next = *dest;
 	*dest = v;
 }
 
-void addlocalvar(SCOPE* s, VARDEC* v) {
+void addlocalvar(SCOPE* s, VARDEC* v, int i) {
 	STRINGLIST* currname = v->names;
 	while(currname != NULL) {
-		addvar(s, &(s->localvars), mkvar(v->type, currname->content, v->primitive, v->debug, local));
+		addvar(s, &(s->localvars), mkvar(v->type, currname->content, v->primitive, v->debug, local, i));
 		currname = currname->next;
 	}
 }
 
-void addstaticvar(SCOPE* s, CLASSVARDEC* v) {
+void addstaticvar(COMPILER* c, SCOPE* s, CLASSVARDEC* v) {
+	pthread_mutex_lock(&(c->staticmutex));
+	static int count = 0;
+	int i = count;
+	count++;
+	pthread_mutex_unlock(&(c->staticmutex));
 	STRINGLIST* currname = v->base->names;
 	while(currname != NULL) {
-		addvar(s, &(s->staticvars), mkvar(v->base->type, currname->content, v->base->primitive, v->base->debug, staticseg));
+		addvar(s, &(s->staticvars), mkvar(v->base->type, currname->content, v->base->primitive, v->base->debug, staticseg, i));
 		currname = currname->next;
 	}
 }
 
-void addfield(SCOPE* s, CLASSVARDEC* v) {
+void addfield(SCOPE* s, CLASSVARDEC* v, int i) {
 	STRINGLIST* currname = v->base->names;
 	while(currname != NULL) {
-		addvar(s, &(s->fields), mkvar(v->base->type, currname->content, v->base->primitive, v->base->debug, fieldseg));
+		addvar(s, &(s->fields), mkvar(v->base->type, currname->content, v->base->primitive, v->base->debug, fieldseg, i));
 		currname = currname->next;
 	}
 }
 
-void addclassvardec(SCOPE* s, CLASSVARDEC* v) {
+void addclassvardec(COMPILER* c, SCOPE* s, CLASSVARDEC* v, int* i) {
 	if(v->type == stat)
-		addstaticvar(s, v);
-	else
-		addfield(s, v);
+		addstaticvar(c, s, v);
+	else {
+		addfield(s, v, *i);
+		*i++;
+	}
 }
 
-void addparameter(SCOPE* s, PARAMETER* p) {
-	addvar(s, &(s->parameters), mkvar(p->type, p->name, p->primitive, p->debug, arg));
+void addparameter(SCOPE* s, PARAMETER* p, int i) {
+	addvar(s, &(s->parameters), mkvar(p->type, p->name, p->primitive, p->debug, arg, i));
 }
 
 // Group adding
-void addclassvardecs(SCOPE* s, CLASSVARDEC* classvardecs) {
+void addclassvardecs(COMPILER* c, SCOPE* s, CLASSVARDEC* classvardecs) {
+	int i = 0;
 	while(classvardecs != NULL) {
-		addclassvardec(s, classvardecs);
+		addclassvardec(c, s, classvardecs, &i);
 		classvardecs = classvardecs->next;
 	}
 }
 
 void addlocalvars(SCOPE* s, VARDEC* localvars) {
+	int i = 0;
 	while(localvars != NULL) {
-		addlocalvar(s, localvars);
+		addlocalvar(s, localvars, i);
+		i++;
 		localvars = localvars->next;
 	}
 }
 
 void addparameters(SCOPE* s, PARAMETER* params) {
+	int i = 0;
 	while(params != NULL) {
-		addparameter(s, params);
+		addparameter(s, params, i);
+		i++;
 		params = params->next;
 	}
 }
