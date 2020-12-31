@@ -4,6 +4,9 @@
 #include "compiler-scopes.h"
 #include "compiler.h"
 
+/* compiler-util
+ * Random utilities for the compiler. */
+
 #define mkln(id) mksimpleln(id, strcount(id))
 
 LINE* onetoken(char* str);

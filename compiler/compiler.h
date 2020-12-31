@@ -5,8 +5,11 @@
 #include "vm-lines.h"
 #include "compiler-scopes.h"
 
-struct scope;
+/* compiler
+ * This is the file that should be included in other modules
+ * that want to compile a class/program. */
 
+struct scope;
 typedef struct compiler {
 	pthread_mutex_t ifmutex;
 	pthread_mutex_t whilemutex;

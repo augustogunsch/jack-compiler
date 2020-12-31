@@ -4,7 +4,7 @@
 #include "compiler.h"
 
 /* compiler-expressions
- * Subroutines for dealing and compiling expressions and singular terms. */
+ * Functions for dealing and compiling expressions and singular terms. */
 
 // Dealing with singular terms
 LINEBLOCK* compilesubroutcall(SCOPE* s, SUBROUTCALL* call);
