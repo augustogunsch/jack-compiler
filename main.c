@@ -61,6 +61,12 @@ int main(int argc, char* argv[]) {
 			eprintf("%s", strerror(errno));
 			exit(1);
 		}
+
+		if(currunit->compiled == NULL) {
+			eprintf("Class '%s' is empty; file '%s'\n", currunit->parsed->name, currunit->file->name);
+			exit(1);
+		}
+
 		printlns(currunit->compiled->head, output);
 		fclose(output);
 		COMPILEUNIT* next = currunit->next;

@@ -244,6 +244,11 @@ TOKEN* tokenize(char* file) {
 		lasttype = curtype;
 	}
 
+	if(curitem == head) {
+		eprintf("File '%s' is empty\n", file);
+		exit(1);
+	}
+
 	lastitem->next = NULL;
 	free(curitem);
 	freestr(tmptoken);
