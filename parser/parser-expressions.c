@@ -166,6 +166,7 @@ TERM* parseexpression(PARSER* p) {
 }
 
 SUBROUTCALL* nullsubroutcall(PARSER* p, SUBROUTCALL* c) {
+	free(c->debug);
 	free(c);
 	rewindparser(p);
 	return NULL;

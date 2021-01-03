@@ -27,9 +27,9 @@ SUBROUTDEC* getsubroutdec(SCOPE* s, const char* name);
 VAR* mkvar(char* type, char* name, bool primitive, DEBUGINFO* debug, MEMSEGMENT seg, int i);
 void addvar(SCOPE* s, VAR** dest, VAR* v);
 void addlocalvar(SCOPE* s, VARDEC* v, int* i);
-void addstaticvar(COMPILER* c, SCOPE* s, CLASSVARDEC* v);
+void addstaticvar(SCOPE* s, CLASSVARDEC* v);
 void addfield(SCOPE* s, CLASSVARDEC* v, int* i);
-void addclassvardec(COMPILER* c, SCOPE* s, CLASSVARDEC* v, int* i);
+void addclassvardec(SCOPE* s, CLASSVARDEC* v, int* i);
 void addparameter(SCOPE* s, PARAMETER* p, int* i);
 
 // Error messages
@@ -67,6 +67,8 @@ void ensurenoduplicate(SCOPE* s, char* name) {
 SCOPE* mkscope(SCOPE* prev) {
 	SCOPE* s = (SCOPE*)malloc(sizeof(SCOPE));
 	s->previous = prev;
+	if(prev != NULL)
+		s->compiler = prev->compiler;
 	s->localvars = NULL;
 	s->fields = NULL;
 	s->staticvars = NULL;
@@ -113,7 +115,7 @@ CLASS* getclass(SCOPE* s, const char* name) {
 	}
 	if(s->previous != NULL)
 		return getclass(s->previous, name);
-	return getosclass(name);
+	return getosclass(s->compiler->os, name);
 }
 
 SUBROUTDEC* getsubroutdecfromlist(SUBROUTDEC* start, char* name) {
@@ -174,7 +176,7 @@ SUBROUTDEC* getsubroutdecfromcall(SCOPE* s, SUBROUTCALL* call, VAR** varret) {
 	SUBROUTDEC* d;
 	*varret = NULL;
 	if(call->parentname != NULL) {
-		d = getossubroutdec(call);
+		d = getossubroutdec(s->compiler->os, call);
 		if(d == NULL)
 			d = getsubroutdecwithparent(s, call, varret);
 	}
@@ -232,16 +234,16 @@ void addlocalvar(SCOPE* s, VARDEC* v, int* i) {
 	}
 }
 
-void addstaticvar(COMPILER* c, SCOPE* s, CLASSVARDEC* v) {
+void addstaticvar(SCOPE* s, CLASSVARDEC* v) {
 	STRINGLIST* currname = v->base->names;
-	pthread_mutex_lock(&(c->staticmutex));
+	pthread_mutex_lock(&(s->compiler->staticmutex));
 	static int i = 0;
 	while(currname != NULL) {
 		addvar(s, &(s->staticvars), mkvar(v->base->type, currname->content, v->base->primitive, v->base->debug, staticseg, i));
 		currname = currname->next;
 		i++;
 	}
-	pthread_mutex_unlock(&(c->staticmutex));
+	pthread_mutex_unlock(&(s->compiler->staticmutex));
 }
 
 void addfield(SCOPE* s, CLASSVARDEC* v, int* i) {
@@ -253,9 +255,9 @@ void addfield(SCOPE* s, CLASSVARDEC* v, int* i) {
 	}
 }
 
-void addclassvardec(COMPILER* c, SCOPE* s, CLASSVARDEC* v, int* i) {
+void addclassvardec(SCOPE* s, CLASSVARDEC* v, int* i) {
 	if(v->type == stat)
-		addstaticvar(c, s, v);
+		addstaticvar(s, v);
 	else {
 		addfield(s, v, i);
 	}
@@ -267,10 +269,10 @@ void addparameter(SCOPE* s, PARAMETER* p, int* i) {
 }
 
 // Group adding
-void addclassvardecs(COMPILER* c, SCOPE* s, CLASSVARDEC* classvardecs) {
+void addclassvardecs(SCOPE* s, CLASSVARDEC* classvardecs) {
 	int i = 0;
 	while(classvardecs != NULL) {
-		addclassvardec(c, s, classvardecs, &i);
+		addclassvardec(s, classvardecs, &i);
 		classvardecs = classvardecs->next;
 	}
 }
@@ -290,3 +292,19 @@ void addparameters(SCOPE* s, bool isformethod, PARAMETER* params) {
 		params = params->next;
 	}
 }
+
+void freevars(VAR* v) {
+	if(v != NULL) {
+		VAR* next = v->next;
+		free(v);
+		freevars(next);
+	}
+}
+
+void freescope(SCOPE* s) {
+	freevars(s->fields);
+	freevars(s->staticvars);
+	freevars(s->localvars);
+	freevars(s->parameters);
+	free(s);
+};

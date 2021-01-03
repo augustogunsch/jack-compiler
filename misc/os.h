@@ -2,9 +2,9 @@
 #define OS_H
 #include "parser-tree.h"
 
-SUBROUTDEC* getossubroutdec(SUBROUTCALL* call);
-CLASS* getosclass(const char* name);
-void populateos();
-void freeos();
+SUBROUTDEC* getossubroutdec(CLASS* os, SUBROUTCALL* call);
+CLASS* getosclass(CLASS* os, const char* name);
+CLASS* mkos();
+void freeos(CLASS* os);
 
 #endif

@@ -20,13 +20,13 @@ int main(int argc, char* argv[]) {
 	COMPILEUNIT* head = (COMPILEUNIT*)malloc(sizeof(COMPILEUNIT));
 
 	head->file = files;
-	head->tokens = tokenize(files->fullname);
+	head->parser = mkparser(tokenize(files->fullname), files->name);
 
 	COMPILEUNIT* currunit = head;
 	while(curr != NULL) {
 		COMPILEUNIT* newunit = (COMPILEUNIT*)malloc(sizeof(COMPILEUNIT));
 		newunit->file = curr;
-		newunit->tokens = tokenize(curr->fullname);
+		newunit->parser = mkparser(tokenize(curr->fullname), curr->name);
 		currunit->next = newunit;
 		currunit = newunit;
 		curr = curr->next;
@@ -52,7 +52,6 @@ int main(int argc, char* argv[]) {
 		currunit = currunit->next;
 	}
 
-	populateos();
 	actonunits(head, compileunit);
 
 	currunit = head;
@@ -64,9 +63,13 @@ int main(int argc, char* argv[]) {
 		}
 		printlns(currunit->compiled->head, output);
 		fclose(output);
-		currunit = currunit->next;
+		COMPILEUNIT* next = currunit->next;
+		freeunit(currunit);
+		currunit = next;
 	}
 
-	//freeos();
+	freecompiler(compiler);
+	freetree(headclass);
+	freefilelist(files);
 	return 0;
 }

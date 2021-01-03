@@ -7,7 +7,7 @@
 void* parseunit(void* input) {
 	COMPILEUNIT* unit = (COMPILEUNIT*)input;
 
-	unit->parsed = parse(unit->tokens, unit->file->name);
+	unit->parsed = parse(unit->parser);
 
 	pthread_exit(NULL);
 }
@@ -59,4 +59,10 @@ void actonunits(COMPILEUNIT* units, void*(*fun)(void*)) {
 	} while(i == _SC_THREAD_THREADS_MAX);
 
 	pthread_attr_destroy(&attr);
+}
+
+void freeunit(COMPILEUNIT* u) {
+	freeparser(u->parser);
+	freelnblk(u->compiled);
+	free(u);
 }

@@ -5,5 +5,5 @@
 /* compiler-structure
  * Module for dealing with and compiling general program structure. */
 
-LINEBLOCK* compilesubroutdec(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTDEC* sd);
+LINEBLOCK* compilesubroutdec(SCOPE* s, CLASS* cl, SUBROUTDEC* sd);
 #endif

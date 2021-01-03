@@ -96,6 +96,7 @@ char* getoutname(char* fullname, int len) {
 	int sz = sizeof(char) * (len-1);
 	char* outname = (char*)malloc(sz);
 	sprintf(outname, "%svm", trimmed);
+	free(trimmed);
 	return outname;
 }
 
@@ -171,6 +172,9 @@ FILELIST* getfiles(char* input) {
 void freefilelist(FILELIST* fs) {
 	free(fs->name);
 	free(fs->fullname);
-	if(fs->next != NULL)
-		freefilelist(fs->next);
+	free(fs->outname);
+	FILELIST* next = fs->next;
+	free(fs);
+	if(next != NULL)
+		freefilelist(next);
 }

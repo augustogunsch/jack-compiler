@@ -3,14 +3,11 @@
 #include "os.h"
 #include "util.h"
 
-CLASS* classes = NULL;
-
-CLASS* addclass(const char* name) {
+CLASS* mkosclass(CLASS* os, const char* name) {
 	CLASS* c = (CLASS*)malloc(sizeof(CLASS));
 	c->name = ezheapstr(name);
 	c->subroutdecs = NULL;
-	c->next = classes;
-	classes = c;
+	c->next = os;
 	return c;
 }
 
@@ -18,24 +15,25 @@ void adddec(CLASS* c, SUBROUTCLASS subroutclass, char* type, const char* name) {
 	SUBROUTDEC* dec = (SUBROUTDEC*)malloc(sizeof(SUBROUTDEC));
 	dec->class = c;
 	dec->subroutclass = subroutclass;
-	dec->type = type;
 	dec->name = ezheapstr(name);
+	dec->type = ezheapstr(type);
 	dec->next = c->subroutdecs;
 	c->subroutdecs = dec;
 }
 
-void populatemath() {
-	CLASS* mathclass = addclass("Math");
+CLASS* mkmath(CLASS* os) {
+	CLASS* mathclass = mkosclass(os, "Math");
 	adddec(mathclass, function, "int", "multiply");
 	adddec(mathclass, function, "int", "divide");
 	adddec(mathclass, function, "int", "abs");
 	adddec(mathclass, function, "int", "min");
 	adddec(mathclass, function, "int", "max");
 	adddec(mathclass, function, "int", "sqrt");
+	return mathclass;
 }
 
-void populatestringclass() {
-	CLASS* strclass = addclass("String");
+CLASS* mkstringclass(CLASS* os) {
+	CLASS* strclass = mkosclass(os, "String");
 	adddec(strclass, constructor, "String", "new");
 	adddec(strclass, method, "int", "dispose");
 	adddec(strclass, method, "int", "length");
@@ -48,84 +46,96 @@ void populatestringclass() {
 	adddec(strclass, function, "char", "backSpace");
 	adddec(strclass, function, "char", "doubleQuote");
 	adddec(strclass, function, "char", "newLine");
+	return strclass;
 }
 
-void populatearray() {
-	CLASS* arrclass = addclass("Array");
+CLASS* mkarray(CLASS* os) {
+	CLASS* arrclass = mkosclass(os, "Array");
 	adddec(arrclass, function, "Array", "new");
 	adddec(arrclass, method, "void", "dispose");
+	return arrclass;
 }
 
-void populateoutput() {
-	CLASS* outclass = addclass("Output");
+CLASS* mkoutput(CLASS* os) {
+	CLASS* outclass = mkosclass(os, "Output");
 	adddec(outclass, function, "void", "moveCursor");
 	adddec(outclass, function, "void", "printChar");
 	adddec(outclass, function, "void", "printString");
 	adddec(outclass, function, "void", "printInt");
 	adddec(outclass, function, "void", "println");
 	adddec(outclass, function, "void", "backSpace");
+	return outclass;
 }
 
-void populatescreen() {
-	CLASS* scrclass = addclass("Screen");
+CLASS* mkscreen(CLASS* os) {
+	CLASS* scrclass = mkosclass(os, "Screen");
 	adddec(scrclass, function, "void", "clearScreen");
 	adddec(scrclass, function, "void", "setColor");
 	adddec(scrclass, function, "void", "drawPixel");
 	adddec(scrclass, function, "void", "drawLine");
 	adddec(scrclass, function, "void", "drawRectangle");
 	adddec(scrclass, function, "void", "drawCircle");
+	return scrclass;
 }
 
-void populatekeyboard() {
-	CLASS* kbdclass = addclass("Keyboard");
+CLASS* mkkeyboard(CLASS* os) {
+	CLASS* kbdclass = mkosclass(os, "Keyboard");
 	adddec(kbdclass, function, "char", "keyPressed");
 	adddec(kbdclass, function, "char", "readChar");
 	adddec(kbdclass, function, "String", "readLine");
 	adddec(kbdclass, function, "int", "readInt");
+	return kbdclass;
 }
 
-void populatememory() {
-	CLASS* memclass = addclass("Memory");
+CLASS* mkmemory(CLASS* os) {
+	CLASS* memclass = mkosclass(os, "Memory");
 	adddec(memclass, function, "int", "peek");
 	adddec(memclass, function, "void", "poke");
 	adddec(memclass, function, "Array", "alloc");
 	adddec(memclass, function, "void", "deAlloc");
+	return memclass;
 }
 
-void populatesys() {
-	CLASS* sysclass = addclass("Sys");
+CLASS* mksys(CLASS* os) {
+	CLASS* sysclass = mkosclass(os, "Sys");
 	adddec(sysclass, function, "void", "halt");
 	adddec(sysclass, function, "void", "error");
 	adddec(sysclass, function, "void", "wait");
+	return sysclass;
 }
 
-void populateos() {
-	populatemath();
-	populatestringclass();
-	populatearray();
-	populateoutput();
-	populatescreen();
-	populatekeyboard();
-	populatememory();
-	populatesys();
+CLASS* mkos() {
+	CLASS* os = mkmath(NULL);
+	os = mkstringclass(os);
+	os = mkarray(os);
+	os = mkoutput(os);
+	os = mkscreen(os);
+	os = mkkeyboard(os);
+	os = mkmemory(os);
+	os = mksys(os);
+	return os;
 }
 
-void freesubroutdecs(SUBROUTDEC* d) {
+void freeossubroutdecs(SUBROUTDEC* d) {
 	free(d->name);
 	free(d->type);
-	if(d->next != NULL)
-		freesubroutdecs(d->next);
+	SUBROUTDEC* next = d->next;
+	free(d);
+	if(next != NULL)
+		freeossubroutdecs(next);
 }
 
-void freeclasses(CLASS* c) {
-	freesubroutdecs(c->subroutdecs);
+void freeosclasses(CLASS* c) {
+	freeossubroutdecs(c->subroutdecs);
 	free(c->name);
-	if(c->next != NULL)
-		freeclasses(c->next);
+	CLASS* next = c->next;
+	free(c);
+	if(next != NULL)
+		freeosclasses(next);
 }
 
-void freeos() {
-	freeclasses(classes);
+void freeos(CLASS* os) {
+	freeosclasses(os);
 }
 
 SUBROUTDEC* getsubroutdecinclass(CLASS* c, const char* name) {
@@ -138,8 +148,8 @@ SUBROUTDEC* getsubroutdecinclass(CLASS* c, const char* name) {
 	return NULL;
 }
 
-CLASS* getosclass(const char* name) {
-	CLASS* curr = classes;
+CLASS* getosclass(CLASS* os, const char* name) {
+	CLASS* curr = os;
 	while(curr != NULL) {
 		if(!strcmp(curr->name, name))
 			return curr;
@@ -148,8 +158,8 @@ CLASS* getosclass(const char* name) {
 	return NULL;
 }
 
-SUBROUTDEC* getossubroutdec(SUBROUTCALL* call) {
-	CLASS* c = getosclass(call->parentname);
+SUBROUTDEC* getossubroutdec(CLASS* os, SUBROUTCALL* call) {
+	CLASS* c = getosclass(os, call->parentname);
 	if(c == NULL)
 		return NULL;
 	return getsubroutdecinclass(c, call->name);

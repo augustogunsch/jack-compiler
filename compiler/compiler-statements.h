@@ -5,5 +5,5 @@
 /* compiler-statements
  * Single function for compiling statements */
 
-LINEBLOCK* compilestatements(COMPILER* c, SCOPE* s, STATEMENT* sts);
+LINEBLOCK* compilestatements(SCOPE* s, STATEMENT* sts);
 #endif

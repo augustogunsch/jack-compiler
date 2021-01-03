@@ -17,5 +17,5 @@ typedef struct token {
 } TOKEN;
 
 TOKEN* tokenize(char* filename);
-void freetokenlist(TOKEN* list);
+void freetokens(TOKEN* t);
 #endif

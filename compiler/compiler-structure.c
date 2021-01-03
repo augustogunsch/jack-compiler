@@ -12,10 +12,10 @@ int getobjsize(CLASS* c);
 LINE* mksubdeclabel(CLASS* c, SUBROUTDEC* sd);
 
 // Compiling methods
-LINEBLOCK* compilefunbody(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTBODY* b);
-LINEBLOCK* compilefundec(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTDEC* f);
-LINEBLOCK* compileconstructor(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTDEC* con);
-LINEBLOCK* compilemethod(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTDEC* m);
+LINEBLOCK* compilefunbody(SCOPE* s, CLASS* cl, SUBROUTBODY* b);
+LINEBLOCK* compilefundec(SCOPE* s, CLASS* cl, SUBROUTDEC* f);
+LINEBLOCK* compileconstructor(SCOPE* s, CLASS* cl, SUBROUTDEC* con);
+LINEBLOCK* compilemethod(SCOPE* s, CLASS* cl, SUBROUTDEC* m);
 
 /* END FORWARD DECLARATIONS */
 
@@ -64,20 +64,21 @@ LINE* mksubdeclabel(CLASS* c, SUBROUTDEC* sd) {
 }
 
 // Compiling methods
-LINEBLOCK* compilefunbody(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTBODY* b) {
+LINEBLOCK* compilefunbody(SCOPE* s, CLASS* cl, SUBROUTBODY* b) {
 	SCOPE* myscope = mkscope(s);
 	myscope->currclass = cl;
 	if(b->vardecs != NULL)
-		addlocalvars(s, b->vardecs);
-	LINEBLOCK* head = compilestatements(c, myscope, b->statements);
+		addlocalvars(myscope, b->vardecs);
+	LINEBLOCK* head = compilestatements(myscope, b->statements);
+	freescope(myscope);
 	return head;
 }
 
-LINEBLOCK* compilefundec(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTDEC* f) {
+LINEBLOCK* compilefundec(SCOPE* s, CLASS* cl, SUBROUTDEC* f) {
 	LINE* label = mksubdeclabel(cl, f);
 
 	if(f->body->statements != NULL) {
-		LINEBLOCK* body = compilefunbody(c, s, cl, f->body);
+		LINEBLOCK* body = compilefunbody(s, cl, f->body);
 		appendlnbefore(body, label);
 		return body;
 	}
@@ -85,7 +86,7 @@ LINEBLOCK* compilefundec(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTDEC* f) {
 		return mklnblk(label);
 }
 
-LINEBLOCK* compileconstructor(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTDEC* con) {
+LINEBLOCK* compileconstructor(SCOPE* s, CLASS* cl, SUBROUTDEC* con) {
 	LINE* label = mksubdeclabel(cl, con);
 	LINEBLOCK* blk = mklnblk(label);
 
@@ -98,12 +99,12 @@ LINEBLOCK* compileconstructor(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTDEC* con)
 	free(size[2]);
 
 	if(con->body != NULL)
-		return mergelnblks(blk, compilefunbody(c, s, cl, con->body));
+		return mergelnblks(blk, compilefunbody(s, cl, con->body));
 	else
 		return blk;
 }
 
-LINEBLOCK* compilemethod(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTDEC* m) {
+LINEBLOCK* compilemethod(SCOPE* s, CLASS* cl, SUBROUTDEC* m) {
 	LINE* label = mksubdeclabel(cl, m);
 	LINEBLOCK* blk = mklnblk(label);
 
@@ -113,18 +114,22 @@ LINEBLOCK* compilemethod(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTDEC* m) {
 	appendln(blk, mkln(poppointer));
 
 	if(m->body != NULL) 
-		return mergelnblks(blk, compilefunbody(c, s, cl, m->body));
+		return mergelnblks(blk, compilefunbody(s, cl, m->body));
 	else
 		return blk;
 }
 
-LINEBLOCK* compilesubroutdec(COMPILER* c, SCOPE* s, CLASS* cl, SUBROUTDEC* sd) {
+LINEBLOCK* compilesubroutdec(SCOPE* s, CLASS* cl, SUBROUTDEC* sd) {
 	SCOPE* myscope = mkscope(s);
+	LINEBLOCK* blk;
 	if(sd->parameters != NULL)
 		addparameters(myscope, sd->subroutclass == method, sd->parameters);
 	if(sd->subroutclass == function)
-		return compilefundec(c, myscope, cl, sd);
-	if(sd->subroutclass == constructor)
-		return compileconstructor(c, myscope, cl, sd);
-	return compilemethod(c, myscope, cl, sd);
+		blk = compilefundec(myscope, cl, sd);
+	else if(sd->subroutclass == constructor)
+		blk = compileconstructor(myscope, cl, sd);
+	else
+		blk = compilemethod(myscope, cl, sd);
+	freescope(myscope);
+	return blk;
 }

@@ -78,6 +78,14 @@ TOKEN* appendtokenraw(TOKEN* curitem, STRING* token, int definedat, TOKENTYPE ty
 	return nextitem;
 }
 
+void freetokens(TOKEN* t) {
+	free(t->token);
+	TOKEN* next = t->next;
+	free(t);
+	if(next != NULL)
+		freetokens(next);
+}
+
 TOKEN* appendtoken(TOKEN* curitem, STRING* token, char* file, int definedat) {
 	append(token, '\0');
 	return appendtokenraw(curitem, token, definedat, gettokentype(token, file, definedat));

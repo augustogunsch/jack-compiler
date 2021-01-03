@@ -14,5 +14,7 @@ typedef struct {
 	char* file;
 } PARSER;
 
-CLASS* parse(TOKEN* tokens, char* file);
+PARSER* mkparser(TOKEN* t, char* file);
+CLASS* parse(PARSER* p);
+void freeparser(PARSER* p);
 #endif

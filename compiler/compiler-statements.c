@@ -13,10 +13,10 @@ char* mkcondlabel(char* name, int count);
 
 // Handling individual statements
 LINEBLOCK* compileret(SCOPE* s, TERM* e);
-LINEBLOCK* compileif(COMPILER* c, SCOPE* s, IFSTATEMENT* st);
-LINEBLOCK* compilewhile(COMPILER* c, SCOPE* s, CONDSTATEMENT* w);
+LINEBLOCK* compileif(SCOPE* s, IFSTATEMENT* st);
+LINEBLOCK* compilewhile(SCOPE* s, CONDSTATEMENT* w);
 LINEBLOCK* compilelet(SCOPE* s, LETSTATEMENT* l);
-LINEBLOCK* compilestatement(COMPILER* c, SCOPE* s, STATEMENT* st);
+LINEBLOCK* compilestatement(SCOPE* s, STATEMENT* st);
 
 /* END FORWARD DECLARATIONS */
 
@@ -55,14 +55,14 @@ LINEBLOCK* compileret(SCOPE* s, TERM* e) {
 	return blk;
 }
 
-LINEBLOCK* compileif(COMPILER* c, SCOPE* s, IFSTATEMENT* st) {
+LINEBLOCK* compileif(SCOPE* s, IFSTATEMENT* st) {
 	LINEBLOCK* blk = compileexpression(s, st->base->expression);
 
-	pthread_mutex_lock(&(c->ifmutex));
+	pthread_mutex_lock(&(s->compiler->ifmutex));
 	static int ifcount = 0;
 	int mycount = ifcount;
 	ifcount++;
-	pthread_mutex_unlock(&(c->ifmutex));
+	pthread_mutex_unlock(&(s->compiler->ifmutex));
 	
 	char* truelabel = mkcondlabel("IF_TRUE", mycount);
 	char* ifgoto[] = { "if-goto", truelabel };
@@ -75,7 +75,7 @@ LINEBLOCK* compileif(COMPILER* c, SCOPE* s, IFSTATEMENT* st) {
 	char* truelabelln[] = { "label", truelabel };
 	appendln(blk, mkln(truelabelln));
 
-	blk = mergelnblks(blk, compilestatements(c, s, st->base->statements));
+	blk = mergelnblks(blk, compilestatements(s, st->base->statements));
 
 	char* endlabel;
 	bool haselse = st->elsestatements != NULL;
@@ -89,7 +89,7 @@ LINEBLOCK* compileif(COMPILER* c, SCOPE* s, IFSTATEMENT* st) {
 	appendln(blk, mkln(falselabelln));
 
 	if(haselse) {
-		blk = mergelnblks(blk, compilestatements(c, s, st->elsestatements));
+		blk = mergelnblks(blk, compilestatements(s, st->elsestatements));
 		char* endlabelln[] = { "label", endlabel };
 		appendln(blk, mkln(endlabelln));
 		free(endlabel);
@@ -101,14 +101,14 @@ LINEBLOCK* compileif(COMPILER* c, SCOPE* s, IFSTATEMENT* st) {
 	return blk;
 }
 
-LINEBLOCK* compilewhile(COMPILER* c, SCOPE* s, CONDSTATEMENT* w) {
+LINEBLOCK* compilewhile(SCOPE* s, CONDSTATEMENT* w) {
 	LINEBLOCK* blk = compileexpression(s, w->expression);
 
-	pthread_mutex_lock(&(c->whilemutex));
+	pthread_mutex_lock(&(s->compiler->whilemutex));
 	static int whilecount = 0;
 	int mycount = whilecount;
 	whilecount++;
-	pthread_mutex_unlock(&(c->whilemutex));
+	pthread_mutex_unlock(&(s->compiler->whilemutex));
 
 	char* explabel = mkcondlabel("WHILE_EXP", mycount);
 	char* explabelln[] = { "label", explabel };
@@ -120,7 +120,7 @@ LINEBLOCK* compilewhile(COMPILER* c, SCOPE* s, CONDSTATEMENT* w) {
 	char* ifgoto[] = { "if-goto", endlabel };
 	appendln(blk, mkln(ifgoto));
 
-	blk = mergelnblks(blk, compilestatements(c, s, w->statements));
+	blk = mergelnblks(blk, compilestatements(s, w->statements));
 
 	char* gotoln[] = { "goto", explabel };
 	appendln(blk, mkln(gotoln));
@@ -152,21 +152,19 @@ LINEBLOCK* compilelet(SCOPE* s, LETSTATEMENT* l) {
 	return blk;
 }
 
-LINEBLOCK* compilestatement(COMPILER* c, SCOPE* s, STATEMENT* st) {
+LINEBLOCK* compilestatement(SCOPE* s, STATEMENT* st) {
 	s->currdebug = st->debug;
 	if(st->type == dostatement) return compilesubroutcall(s, st->dostatement);
 	if(st->type == returnstatement) return compileret(s, st->retstatement);
-	if(st->type == ifstatement) return compileif(c, s, st->ifstatement);
-	if(st->type == whilestatement) return compilewhile(c, s, st->whilestatement);
-	if(st->type == letstatement) return compilelet(s, st->letstatement);
-	eprintf("UNSUPPORTED type %i\n", st->type);
-	exit(1);
+	if(st->type == ifstatement) return compileif(s, st->ifstatement);
+	if(st->type == whilestatement) return compilewhile(s, st->whilestatement);
+	return compilelet(s, st->letstatement);
 }
 
-LINEBLOCK* compilestatements(COMPILER* c, SCOPE* s, STATEMENT* sts) {
+LINEBLOCK* compilestatements(SCOPE* s, STATEMENT* sts) {
 	LINEBLOCK* head = NULL;
 	while(sts != NULL) {
-		head = mergelnblks(head, compilestatement(c, s, sts));
+		head = mergelnblks(head, compilestatement(s, sts));
 		sts = sts->next;
 	}
 	return head;

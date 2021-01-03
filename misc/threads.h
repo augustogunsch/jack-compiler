@@ -10,7 +10,7 @@
 
 typedef struct unit {
 	FILELIST* file;
-	TOKEN* tokens;
+	PARSER* parser;
 	CLASS* parsed;
 	COMPILER* compiler;
 	LINEBLOCK* compiled;
@@ -21,4 +21,5 @@ void* parseunit(void* input);
 void* compileunit(void* input);
 void waitthreads(pthread_t* threads, int amount);
 void actonunits(COMPILEUNIT* units, void*(*fun)(void*));
+void freeunit(COMPILEUNIT* u);
 #endif

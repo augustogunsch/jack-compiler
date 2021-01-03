@@ -15,6 +15,7 @@ typedef struct compiler {
 	pthread_mutex_t whilemutex;
 	pthread_mutex_t staticmutex;
 	CLASS* classes;
+	CLASS* os;
 	struct scope* globalscope;
 } COMPILER;
 

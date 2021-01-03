@@ -207,11 +207,10 @@ LINEBLOCK* compileexpression(SCOPE* s, TERM* e) {
 	if(e != NULL) {
 		while(true) {
 			blk = mergelnblks(blk, compileterm(s, e));
-			if(e->next != NULL) {
-				appendln(blk, mathopln(e->op));
-				e = e->next;
-			}
-			else break;
+			if(e->next == NULL)
+				break;
+			appendln(blk, mathopln(e->op));
+			e = e->next;
 		}
 	}
 	return blk;

@@ -21,6 +21,7 @@ typedef struct var {
 } VAR;
 
 typedef struct scope {
+	struct compiler* compiler;
 	DEBUGINFO* currdebug;
 	CLASS* currclass;
 
@@ -38,7 +39,7 @@ typedef struct scope {
 struct compiler;
 
 // Group adding
-void addclassvardecs(struct compiler* c, SCOPE* s, CLASSVARDEC* classvardecs);
+void addclassvardecs(SCOPE* s, CLASSVARDEC* classvardecs);
 void addlocalvars(SCOPE* s, VARDEC* localvars);
 void addparameters(SCOPE* s, bool isformethod, PARAMETER* params);
 
@@ -51,4 +52,7 @@ CLASS* getclass(SCOPE* s, const char* name);
 
 // Generic getters
 VAR* getvar(SCOPE* s, const char* name);
+
+// Freeing
+void freescope(SCOPE* s);
 #endif

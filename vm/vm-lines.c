@@ -32,6 +32,7 @@ void printlns(LINE* lns, FILE* stream) {
 void freeln(LINE* ln) {
 	for(int i = 0; i < ln->count; i++)
 		free(ln->tokens[i]);
+	free(ln->tokens);
 	free(ln);
 }
 
@@ -40,6 +41,11 @@ void freelns(LINE* lns) {
 	freeln(lns);
 	if(next != NULL)
 		freelns(next);
+}
+
+void freelnblk(LINEBLOCK* blk) {
+	freelns(blk->head);
+	free(blk);
 }
 
 LINEBLOCK* mklnblk(LINE* start) {

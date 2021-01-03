@@ -167,9 +167,9 @@ SUBROUTDEC* parsesubroutdecs(PARSER* p, CLASS* c) {
 }
 
 PARAMETER* parseparameter(PARSER* p) {
-	PARAMETER* param = (PARAMETER*)malloc(sizeof(PARAMETER));
 	if(equals(p, ")"))
 		return NULL;
+	PARAMETER* param = (PARAMETER*)malloc(sizeof(PARAMETER));
 	param->debug = getdebug(p);
 	param->primitive = isprimitive(p->current);
 	param->type = parsetype(p);

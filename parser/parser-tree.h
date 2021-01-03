@@ -155,4 +155,6 @@ typedef struct expressionlist {
 	struct expressionlist* next;
 } EXPRESSIONLIST;
 
+
+void freetree(CLASS* c);
 #endif

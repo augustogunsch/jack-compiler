@@ -29,6 +29,7 @@ void printlns(LINE* lns, FILE* stream);
 // Line freeing
 void freeln(LINE* ln);
 void freelns(LINE* lns);
+void freelnblk(LINEBLOCK* blk);
 
 // Line block manipulation
 LINEBLOCK* mklnblk(LINE* start);
