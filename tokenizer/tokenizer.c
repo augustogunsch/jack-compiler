@@ -122,7 +122,7 @@ bool isintcons(STRING* tk) {
 	if(!isint(tk->str))
 		return false;
 	int val = atoi(tk->str);
-	return val >= 0 && val <= 32767;
+	return val <= 65535;
 }
 
 bool isidentifier(STRING* tk) {
