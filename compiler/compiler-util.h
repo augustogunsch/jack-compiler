@@ -12,9 +12,9 @@
 LINE* onetoken(char* str);
 LINE* mksimpleln(char** tokens, int count);
 
-LINE* pushvarraw(SCOPE*s, VAR* v);
-LINE* pushvar(SCOPE* s, const char* name);
-LINE* popvar(SCOPE* s, const char* name);
+LINE* pushvarraw(SCOPE* s, VAR* v);
+LINE* pushvar(SCOPE* s, DEBUGINFO* d, const char* name);
+LINE* popvar(SCOPE* s, DEBUGINFO* d, const char* name);
 LINE* poptemp();
 LINE* popthatadd();
 

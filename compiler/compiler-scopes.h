@@ -52,6 +52,7 @@ CLASS* getclass(SCOPE* s, const char* name);
 
 // Generic getters
 VAR* getvar(SCOPE* s, const char* name);
+VAR* getvarmustexist(SCOPE* s, DEBUGINFO* d, const char* name);
 
 // Freeing
 void freescope(SCOPE* s);

@@ -15,10 +15,10 @@ char* toascii(char c);
 // Dealing with singular terms
 LINEBLOCK* compilestrconst(char* str);
 LINEBLOCK* compilekeywordconst(SCOPE* s, TERM* t);
-LINEBLOCK* compilearrayitem(SCOPE* s, TERM* t);
+LINEBLOCK* compilearrayitem(SCOPE* s, DEBUGINFO* d, TERM* t);
 LINEBLOCK* compilecallln(SCOPE* s, SUBROUTDEC* d, SUBROUTCALL* call);
-LINEBLOCK* pushunaryopterm(SCOPE* s, TERM* t);
-LINEBLOCK* compileterm(SCOPE* s, TERM* t);
+LINEBLOCK* pushunaryopterm(SCOPE* s, DEBUGINFO* d, TERM* t);
+LINEBLOCK* compileterm(SCOPE* s, DEBUGINFO* d, TERM* t);
 
 /* END FORWARD DECLARATIONS */
 
@@ -128,9 +128,9 @@ LINEBLOCK* compilekeywordconst(SCOPE* s, TERM* t) {
 	return mklnblk(pushconstant(0));
 }
 
-LINEBLOCK* compilearrayitem(SCOPE* s, TERM* t) {
-	LINEBLOCK* blk = compileexpression(s, t->array->exp);
-	appendln(blk, pushvar(s, t->array->name));
+LINEBLOCK* compilearrayitem(SCOPE* s, DEBUGINFO* d, TERM* t) {
+	LINEBLOCK* blk = compileexpression(s, d, t->array->exp);
+	appendln(blk, pushvar(s, d, t->array->name));
 
 	appendln(blk, onetoken("add"));
 
@@ -161,7 +161,7 @@ LINEBLOCK* compilesubroutcall(SCOPE* s, SUBROUTCALL* call) {
 	LINEBLOCK* blk = compilecallln(s, d, call);
 
 	if(call->parameters != NULL)
-		blk = mergelnblks(compileexplist(s, call->parameters), blk);
+		blk = mergelnblks(compileexplist(s, call->debug, call->parameters), blk);
 
 	if(d->subroutclass == method) {
 		if(call->parentname == NULL)
@@ -179,8 +179,8 @@ LINEBLOCK* compilesubroutcall(SCOPE* s, SUBROUTCALL* call) {
 	return blk;
 }
 
-LINEBLOCK* pushunaryopterm(SCOPE* s, TERM* t) {
-	LINEBLOCK* blk = compileexpression(s, t->expression);
+LINEBLOCK* pushunaryopterm(SCOPE* s, DEBUGINFO* d, TERM* t) {
+	LINEBLOCK* blk = compileexpression(s, d, t->expression);
 	LINE* neg;
 	if(t->unaryop == '-')
 	       	neg = onetoken("neg");
@@ -190,23 +190,23 @@ LINEBLOCK* pushunaryopterm(SCOPE* s, TERM* t) {
 	return blk;
 }
 
-LINEBLOCK* compileterm(SCOPE* s, TERM* t) {
-	if(t->type == varname) return mklnblk(pushvar(s, t->string));
+LINEBLOCK* compileterm(SCOPE* s, DEBUGINFO* d, TERM* t) {
+	if(t->type == varname) return mklnblk(pushvar(s, d, t->string));
 	if(t->type == intconstant) return mklnblk(pushconstant(t->integer));
 	if(t->type == stringconstant) return compilestrconst(t->string);
 	if(t->type == keywordconstant) return compilekeywordconst(s, t);
-	if(t->type == arrayitem) return compilearrayitem(s, t);
+	if(t->type == arrayitem) return compilearrayitem(s, d, t);
 	if(t->type == subroutcall) return compilesubroutcall(s, t->call);
-	if(t->type == innerexpression) return compileexpression(s, t->expression);
-	return pushunaryopterm(s, t);
+	if(t->type == innerexpression) return compileexpression(s, d, t->expression);
+	return pushunaryopterm(s, d, t);
 }
 
 // Dealing with whole expressions
-LINEBLOCK* compileexpression(SCOPE* s, TERM* e) {
+LINEBLOCK* compileexpression(SCOPE* s, DEBUGINFO* d, TERM* e) {
 	LINEBLOCK* blk = NULL;
 	if(e != NULL) {
 		while(true) {
-			blk = mergelnblks(blk, compileterm(s, e));
+			blk = mergelnblks(blk, compileterm(s, d, e));
 			if(e->next == NULL)
 				break;
 			appendln(blk, mathopln(e->op));
@@ -216,10 +216,10 @@ LINEBLOCK* compileexpression(SCOPE* s, TERM* e) {
 	return blk;
 }
 
-LINEBLOCK* compileexplist(SCOPE* s, EXPRESSIONLIST* explist) {
+LINEBLOCK* compileexplist(SCOPE* s, DEBUGINFO* d, EXPRESSIONLIST* explist) {
 	LINEBLOCK* head = NULL;
 	while(explist != NULL) {
-		head = mergelnblks(head, compileexpression(s, explist->expression));
+		head = mergelnblks(head, compileexpression(s, d, explist->expression));
 		explist = explist->next;
 	}
 	return head;

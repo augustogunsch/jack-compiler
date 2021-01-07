@@ -10,6 +10,6 @@
 LINEBLOCK* compilesubroutcall(SCOPE* s, SUBROUTCALL* call);
 
 // Dealing with whole expressions
-LINEBLOCK* compileexpression(SCOPE* s, TERM* e);
-LINEBLOCK* compileexplist(SCOPE* s, EXPRESSIONLIST* explist);
+LINEBLOCK* compileexpression(SCOPE* s, DEBUGINFO* d, TERM* e);
+LINEBLOCK* compileexplist(SCOPE* s, DEBUGINFO* d, EXPRESSIONLIST* explist);
 #endif

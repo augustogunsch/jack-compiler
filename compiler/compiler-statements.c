@@ -12,10 +12,10 @@ LINE* pushtemp();
 char* mkcondlabel(char* name, int count);
 
 // Handling individual statements
-LINEBLOCK* compileret(SCOPE* s, TERM* e);
-LINEBLOCK* compileif(SCOPE* s, IFSTATEMENT* st);
-LINEBLOCK* compilewhile(SCOPE* s, CONDSTATEMENT* w);
-LINEBLOCK* compilelet(SCOPE* s, LETSTATEMENT* l);
+LINEBLOCK* compileret(SCOPE* s, STATEMENT* st);
+LINEBLOCK* compileif(SCOPE* s, STATEMENT* st);
+LINEBLOCK* compilewhile(SCOPE* s, STATEMENT* st);
+LINEBLOCK* compilelet(SCOPE* s, STATEMENT* st);
 LINEBLOCK* compilestatement(SCOPE* s, STATEMENT* st);
 
 /* END FORWARD DECLARATIONS */
@@ -41,7 +41,8 @@ char* mkcondlabel(char* name, int count) {
 }
 
 // Handling individual statements
-LINEBLOCK* compileret(SCOPE* s, TERM* e) {
+LINEBLOCK* compileret(SCOPE* s, STATEMENT* st) {
+	TERM* e = st->retstatement;
 	LINE* ret = onetoken("return");
 	LINEBLOCK* blk = mklnblk(ret);
 
@@ -50,13 +51,14 @@ LINEBLOCK* compileret(SCOPE* s, TERM* e) {
 		char* tokens[] = { "push", "constant", "0" };
 		appendlnbefore(blk, mkln(tokens));
 	} else
-		blk = mergelnblks(compileexpression(s, e), blk);
+		blk = mergelnblks(compileexpression(s, st->debug, e), blk);
 
 	return blk;
 }
 
-LINEBLOCK* compileif(SCOPE* s, IFSTATEMENT* st) {
-	LINEBLOCK* blk = compileexpression(s, st->base->expression);
+LINEBLOCK* compileif(SCOPE* s, STATEMENT* st) {
+	IFSTATEMENT* ifst = st->ifstatement;
+	LINEBLOCK* blk = compileexpression(s, st->debug, ifst->base->expression);
 
 	pthread_mutex_lock(&(s->compiler->ifmutex));
 	static int ifcount = 0;
@@ -75,10 +77,10 @@ LINEBLOCK* compileif(SCOPE* s, IFSTATEMENT* st) {
 	char* truelabelln[] = { "label", truelabel };
 	appendln(blk, mkln(truelabelln));
 
-	blk = mergelnblks(blk, compilestatements(s, st->base->statements));
+	blk = mergelnblks(blk, compilestatements(s, ifst->base->statements));
 
 	char* endlabel;
-	bool haselse = st->elsestatements != NULL;
+	bool haselse = ifst->elsestatements != NULL;
 	if(haselse) {
 		endlabel = mkcondlabel("IF_END", mycount);
 		char* endgoto[] = { "goto", endlabel };
@@ -89,7 +91,7 @@ LINEBLOCK* compileif(SCOPE* s, IFSTATEMENT* st) {
 	appendln(blk, mkln(falselabelln));
 
 	if(haselse) {
-		blk = mergelnblks(blk, compilestatements(s, st->elsestatements));
+		blk = mergelnblks(blk, compilestatements(s, ifst->elsestatements));
 		char* endlabelln[] = { "label", endlabel };
 		appendln(blk, mkln(endlabelln));
 		free(endlabel);
@@ -101,8 +103,9 @@ LINEBLOCK* compileif(SCOPE* s, IFSTATEMENT* st) {
 	return blk;
 }
 
-LINEBLOCK* compilewhile(SCOPE* s, CONDSTATEMENT* w) {
-	LINEBLOCK* blk = compileexpression(s, w->expression);
+LINEBLOCK* compilewhile(SCOPE* s, STATEMENT* st) {
+	CONDSTATEMENT* w = st->whilestatement;
+	LINEBLOCK* blk = compileexpression(s, st->debug, w->expression);
 
 	pthread_mutex_lock(&(s->compiler->whilemutex));
 	static int whilecount = 0;
@@ -134,13 +137,14 @@ LINEBLOCK* compilewhile(SCOPE* s, CONDSTATEMENT* w) {
 	return blk;
 }
 
-LINEBLOCK* compilelet(SCOPE* s, LETSTATEMENT* l) {
-	LINEBLOCK* blk = compileexpression(s, l->expression);
+LINEBLOCK* compilelet(SCOPE* s, STATEMENT* st) {
+	LETSTATEMENT* l = st->letstatement;
+	LINEBLOCK* blk = compileexpression(s, st->debug, l->expression);
 
 	if(l->arrayind != NULL) {
 		appendlnbefore(blk, onetoken("add"));
-		appendlnbefore(blk, pushvar(s, l->varname));
-		blk = mergelnblks(compileexpression(s, l->arrayind), blk);
+		appendlnbefore(blk, pushvar(s, st->debug, l->varname));
+		blk = mergelnblks(compileexpression(s, st->debug, l->arrayind), blk);
 
 		appendln(blk, poptemp());
 		appendln(blk, popthatadd());
@@ -148,17 +152,17 @@ LINEBLOCK* compilelet(SCOPE* s, LETSTATEMENT* l) {
 		appendln(blk, popthat());
 	}
 	else
-		appendln(blk, popvar(s, l->varname));
+		appendln(blk, popvar(s, st->debug, l->varname));
 	return blk;
 }
 
 LINEBLOCK* compilestatement(SCOPE* s, STATEMENT* st) {
 	s->currdebug = st->debug;
 	if(st->type == dostatement) return compilesubroutcall(s, st->dostatement);
-	if(st->type == returnstatement) return compileret(s, st->retstatement);
-	if(st->type == ifstatement) return compileif(s, st->ifstatement);
-	if(st->type == whilestatement) return compilewhile(s, st->whilestatement);
-	return compilelet(s, st->letstatement);
+	if(st->type == returnstatement) return compileret(s, st);
+	if(st->type == ifstatement) return compileif(s, st);
+	if(st->type == whilestatement) return compilewhile(s, st);
+	return compilelet(s, st);
 }
 
 LINEBLOCK* compilestatements(SCOPE* s, STATEMENT* sts) {

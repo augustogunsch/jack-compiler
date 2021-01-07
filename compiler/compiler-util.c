@@ -8,21 +8,16 @@ LINE* opvarraw(SCOPE* s, char* op, VAR* v) {
 	return ln;
 }
 
-LINE* opvar(SCOPE* s, char* op, const char* name) {
-	VAR* v = getvar(s, name);
-	return opvarraw(s, op, v);
-}
-
-LINE* pushvarraw(SCOPE*s, VAR* v) {
+LINE* pushvarraw(SCOPE* s, VAR* v) {
 	return opvarraw(s, "push", v);
 }
 
-LINE* pushvar(SCOPE* s, const char* name) {
-	return opvar(s, "push", name);
+LINE* pushvar(SCOPE* s, DEBUGINFO* d, const char* name) {
+	return opvarraw(s, "push", getvarmustexist(s, d, name));
 }
 
-LINE* popvar(SCOPE* s, const char* name) {
-	return opvar(s, "pop", name);
+LINE* popvar(SCOPE* s, DEBUGINFO* d, const char* name) {
+	return opvarraw(s, "pop", getvarmustexist(s, d, name));
 }
 
 LINE* poptemp() {

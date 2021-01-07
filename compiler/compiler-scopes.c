@@ -106,6 +106,13 @@ VAR* getvar(SCOPE* s, const char* name) {
 	return NULL;
 }
 
+VAR* getvarmustexist(SCOPE* s, DEBUGINFO* d, const char* name) {
+	VAR* v = getvar(s, name);
+	if(v == NULL)
+		notdeclared(name, d);
+	return v;
+}
+
 CLASS* getclass(SCOPE* s, const char* name) {
 	CLASS* curr = s->classes;
 	while(curr != NULL) {
