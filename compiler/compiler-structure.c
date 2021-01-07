@@ -12,7 +12,7 @@ int getobjsize(CLASS* c);
 LINE* mksubdeclabel(CLASS* c, SUBROUTDEC* sd);
 
 // Compiling methods
-LINEBLOCK* compilefunbody(SCOPE* s, CLASS* cl, SUBROUTBODY* b);
+LINEBLOCK* compilefunbody(SCOPE* s, CLASS* cl, SUBROUTDEC* d);
 LINEBLOCK* compilefundec(SCOPE* s, CLASS* cl, SUBROUTDEC* f);
 LINEBLOCK* compileconstructor(SCOPE* s, CLASS* cl, SUBROUTDEC* con);
 LINEBLOCK* compilemethod(SCOPE* s, CLASS* cl, SUBROUTDEC* m);
@@ -64,12 +64,27 @@ LINE* mksubdeclabel(CLASS* c, SUBROUTDEC* sd) {
 }
 
 // Compiling methods
-LINEBLOCK* compilefunbody(SCOPE* s, CLASS* cl, SUBROUTBODY* b) {
+LINEBLOCK* compilefunbody(SCOPE* s, CLASS* cl, SUBROUTDEC* d) {
+	SUBROUTBODY* b = d->body;
 	SCOPE* myscope = mkscope(s);
 	myscope->currclass = cl;
 	if(b->vardecs != NULL)
 		addlocalvars(myscope, b->vardecs);
-	LINEBLOCK* head = compilestatements(myscope, b->statements);
+
+	if(b->statements == NULL) {
+		eprintf("Subroutine body has no statements; file '%s', line %i\n",
+				d->debug->file, d->debug->definedat);
+		exit(1);
+	}
+
+	STATEMENT* last;
+	LINEBLOCK* head = compilestatementsretlast(myscope, b->statements, &last);
+	if(last->type != returnstatement) {
+		eprintf("Subroutine must end with a return statement; file '%s', line %i\n",
+				last->debug->file, last->debug->definedat);
+		exit(1);
+	}
+
 	freescope(myscope);
 	return head;
 }
@@ -78,7 +93,7 @@ LINEBLOCK* compilefundec(SCOPE* s, CLASS* cl, SUBROUTDEC* f) {
 	LINE* label = mksubdeclabel(cl, f);
 
 	if(f->body->statements != NULL) {
-		LINEBLOCK* body = compilefunbody(s, cl, f->body);
+		LINEBLOCK* body = compilefunbody(s, cl, f);
 		appendlnbefore(body, label);
 		return body;
 	}
@@ -99,7 +114,7 @@ LINEBLOCK* compileconstructor(SCOPE* s, CLASS* cl, SUBROUTDEC* con) {
 	free(size[2]);
 
 	if(con->body != NULL)
-		return mergelnblks(blk, compilefunbody(s, cl, con->body));
+		return mergelnblks(blk, compilefunbody(s, cl, con));
 	else
 		return blk;
 }
@@ -114,7 +129,7 @@ LINEBLOCK* compilemethod(SCOPE* s, CLASS* cl, SUBROUTDEC* m) {
 	appendln(blk, mkln(poppointer));
 
 	if(m->body != NULL) 
-		return mergelnblks(blk, compilefunbody(s, cl, m->body));
+		return mergelnblks(blk, compilefunbody(s, cl, m));
 	else
 		return blk;
 }

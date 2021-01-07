@@ -6,4 +6,5 @@
  * Single function for compiling statements */
 
 LINEBLOCK* compilestatements(SCOPE* s, STATEMENT* sts);
+LINEBLOCK* compilestatementsretlast(SCOPE* s, STATEMENT* sts, STATEMENT** retlast);
 #endif

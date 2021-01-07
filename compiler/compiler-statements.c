@@ -173,3 +173,15 @@ LINEBLOCK* compilestatements(SCOPE* s, STATEMENT* sts) {
 	}
 	return head;
 }
+
+LINEBLOCK* compilestatementsretlast(SCOPE* s, STATEMENT* sts, STATEMENT** retlast) {
+	LINEBLOCK* head = NULL;
+	STATEMENT* last = NULL;
+	while(sts != NULL) {
+		head = mergelnblks(head, compilestatement(s, sts));
+		last = sts;
+		sts = sts->next;
+	}
+	*retlast = last;
+	return head;
+}
