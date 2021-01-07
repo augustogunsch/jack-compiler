@@ -204,15 +204,18 @@ LINEBLOCK* compileterm(SCOPE* s, DEBUGINFO* d, TERM* t) {
 // Dealing with whole expressions
 LINEBLOCK* compileexpression(SCOPE* s, DEBUGINFO* d, TERM* e) {
 	LINEBLOCK* blk = NULL;
+	LINEBLOCK* ops = NULL;
 	if(e != NULL) {
 		while(true) {
 			blk = mergelnblks(blk, compileterm(s, d, e));
 			if(e->next == NULL)
 				break;
-			appendln(blk, mathopln(e->op));
+			ops = mergelnblks(ops, mklnblk(mathopln(e->op)));
 			e = e->next;
 		}
 	}
+	if(ops != NULL)
+		blk = mergelnblks(blk, ops);
 	return blk;
 }
 
