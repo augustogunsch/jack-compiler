@@ -92,13 +92,9 @@ LINEBLOCK* compilefunbody(SCOPE* s, CLASS* cl, SUBROUTDEC* d) {
 LINEBLOCK* compilefundec(SCOPE* s, CLASS* cl, SUBROUTDEC* f) {
 	LINE* label = mksubdeclabel(cl, f);
 
-	if(f->body->statements != NULL) {
-		LINEBLOCK* body = compilefunbody(s, cl, f);
-		appendlnbefore(body, label);
-		return body;
-	}
-	else
-		return mklnblk(label);
+	LINEBLOCK* body = compilefunbody(s, cl, f);
+	appendlnbefore(body, label);
+	return body;
 }
 
 LINEBLOCK* compileconstructor(SCOPE* s, CLASS* cl, SUBROUTDEC* con) {
