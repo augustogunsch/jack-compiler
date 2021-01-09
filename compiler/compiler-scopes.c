@@ -11,7 +11,7 @@ char* memsegnames[] = { "local", "static", "argument", "this" };
 
 // Error messages
 void doubledeclaration(const char* name, DEBUGINFO* d1, DEBUGINFO* d2);
-void ensurenoduplicate(SCOPE* s, char* name);
+void ensurenoduplicate(SCOPE* s, DEBUGINFO* d, char* name);
 
 // Getters
 VAR* getvarinvars(VAR* vars, const char* name);
@@ -49,18 +49,18 @@ void invalidparent(SUBROUTCALL* call) {
 	exit(1);
 }
 
-void ensurenoduplicate(SCOPE* s, char* name) {
+void ensurenoduplicate(SCOPE* s, DEBUGINFO* d, char* name) {
 	VAR* v = getvar(s, name);
 	if(v != NULL)
-		doubledeclaration(name, s->currdebug, v->debug);
+		doubledeclaration(name, d, v->debug);
 
 	CLASS* c = getclass(s, name);
 	if(c != NULL)
-		doubledeclaration(name, s->currdebug, c->debug);
+		doubledeclaration(name, d, c->debug);
 
 	SUBROUTDEC* sr = getsubroutdec(s, name);
 	if(sr != NULL)
-		doubledeclaration(name, s->currdebug, sr->debug);
+		doubledeclaration(name, d, sr->debug);
 }
 
 // Scope handling
@@ -220,7 +220,7 @@ VAR* mkvar(char* type, char* name, bool primitive, DEBUGINFO* debug, MEMSEGMENT 
 }
 
 void addvar(SCOPE* s, VAR** dest, VAR* v) {
-	ensurenoduplicate(s, v->name);
+	ensurenoduplicate(s, v->debug, v->name);
 
 	if(!v->primitive) {
 		CLASS* type = getclass(s, v->type);

@@ -157,7 +157,6 @@ LINEBLOCK* compilelet(SCOPE* s, STATEMENT* st) {
 }
 
 LINEBLOCK* compilestatement(SCOPE* s, STATEMENT* st) {
-	s->currdebug = st->debug;
 	if(st->type == dostatement) return compilesubroutcall(s, st->dostatement);
 	if(st->type == returnstatement) return compileret(s, st);
 	if(st->type == ifstatement) return compileif(s, st);

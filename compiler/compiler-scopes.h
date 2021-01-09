@@ -22,7 +22,6 @@ typedef struct var {
 
 typedef struct scope {
 	struct compiler* compiler;
-	DEBUGINFO* currdebug;
 	CLASS* currclass;
 
 	CLASS* classes;
